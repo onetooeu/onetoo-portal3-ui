@@ -1,0 +1,8 @@
+agent.key
+agent.pub
+sig.bin
+canonical.txt
+body.json
+*.key
+*.pem
+*.minisig

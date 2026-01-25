@@ -1,7 +1,15 @@
 name = "onetoo-portal3-ui"
 compatibility_date = "2026-01-25"
-workers_dev = false
 
+# Seal: no workers.dev + no preview URLs
+workers_dev = false
+preview_urls = false
+
+# Static UI assets
+[assets]
+directory = "."
+
+# Custom domain
 [[routes]]
 pattern = "portal.onetoo.eu"
 custom_domain = true

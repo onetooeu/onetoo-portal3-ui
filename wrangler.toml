@@ -1,0 +1,7 @@
+name = "onetoo-portal3-ui"
+compatibility_date = "2026-01-25"
+workers_dev = false
+
+[[routes]]
+pattern = "portal.onetoo.eu"
+custom_domain = true

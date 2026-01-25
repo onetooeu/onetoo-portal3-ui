@@ -1,3 +1,10 @@
 .wrangler/
 node_modules/
 .DS_Store
+
+# local signing artifacts (must never ship)
+agent.key
+agent.pub
+sig.bin
+canonical.txt
+body.json

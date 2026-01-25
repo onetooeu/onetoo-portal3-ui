@@ -19,26 +19,26 @@
   <div class="grid">
     <div class="card">
       <h2>Agents</h2>
-      <button id="loadAgents">Load</button>
+      <button id="loadAgents" type="button">Load</button>
       <div id="agentsOut"></div>
     </div>
 
     <div class="card">
       <h2>Rooms (read-only)</h2>
       <input id="roomName" placeholder="room name (e.g. lobby)" value="lobby"/>
-      <button id="loadRoom">Load</button>
+      <button id="loadRoom" type="button">Load</button>
       <pre id="roomOut"></pre>
     </div>
 
     <div class="card">
       <h2>Proposals</h2>
-      <button id="loadProps">Load</button>
+      <button id="loadProps" type="button">Load</button>
       <pre id="propsOut"></pre>
     </div>
 
     <div class="card">
       <h2>Service manifest</h2>
-      <button id="loadManifest">Load</button>
+      <button id="loadManifest" type="button">Load</button>
       <pre id="manifestOut"></pre>
     </div>
   </div>
@@ -65,7 +65,7 @@
         div.innerHTML = `<b>${(a.name||"").replace(/</g,"&lt;")}</b><br/><small>${a.pubkey}</small><br/>${(a.about||"").replace(/</g,"&lt;")}`;
         root.appendChild(div);
       });
-      if (s!==200) root.innerHTML = "<b>Failed</b> " + s;
+      
     };
 
     document.getElementById("loadRoom").onclick = async () => {

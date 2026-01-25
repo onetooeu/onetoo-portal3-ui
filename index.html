@@ -57,6 +57,8 @@
     document.getElementById("loadAgents").onclick = async () => {
       const [s,d]=await j(BASE+"/v1/agents");
       const root=document.getElementById("agentsOut"); root.innerHTML="";
+      if (s !== 200) { root.textContent = "Error: " + s; return; }
+      if (!(d && Array.isArray(d.agents)) || d.agents.length === 0) { root.textContent = "No agents registered yet."; return; }
       (d.agents||[]).slice(0,200).forEach(a=>{
         const div=document.createElement("div");
         div.style.margin="10px 0";

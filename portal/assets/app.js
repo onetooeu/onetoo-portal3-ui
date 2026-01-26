@@ -205,7 +205,7 @@ export function mountFooter(cfg){
   const yr = new Date().getUTCFullYear();
   el.innerHTML = `<div class="footer">
     <div class="small muted">
-      Ă‚© ${yr} ONETOO Ă˘â‚¬â€ť deterministic, audit-friendly trust fabric. UI is read-only and does not approve or modify registry state.
+      &copy; ${yr} ONETOO &mdash; deterministic, audit-friendly trust fabric. UI is read-only and does not approve or modify registry state.
     </div>
   </div>`;
 }

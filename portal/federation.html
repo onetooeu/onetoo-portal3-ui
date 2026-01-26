@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Federation — ONETOO Portal</title>
+  <title>Federation Ă˘â‚¬â€ť ONETOO Portal</title>
   <link rel="stylesheet" href="./assets/style.css"/>
 </head>
 <body>
@@ -29,8 +29,8 @@
         <div class="field">
           <label>Merge mode</label>
           <select id="merge">
-            <option value="score_then_source">score → source</option>
-            <option value="source_then_score">source → score</option>
+            <option value="score_then_source">score Ă˘â€ â€™ source</option>
+            <option value="source_then_score">source Ă˘â€ â€™ score</option>
           </select>
         </div>
       </div>
@@ -113,7 +113,7 @@
     }
 
     async function run(){
-      els.out.textContent = "Loading…";
+      els.out.textContent = "LoadingĂ˘â‚¬Â¦";
       const q = (els.q.value||"").trim();
       const limit = Math.max(1, Math.min(50, parseInt(els.limit.value||"10",10)));
       const s = parseSources();
@@ -155,5 +155,15 @@
     els.run.onclick = run;
     els.reset.onclick = ()=>{ els.sources.value = defaultSources(); };
   </script>
+<section class="card">
+  <h2>Federation handshake snapshot</h2>
+  <p class="muted">Fetches discovery endpoints (trust root, search runtime, agents) and seals a local snapshot artifact with SHA-256.</p>
+  <div class="row">
+    <button id="btnHandshake" class="btn">Handshake snapshot</button>
+    <button id="btnClearHandshake" class="btn btn-secondary">Clear</button>
+  </div>
+  <pre id="handshakeOut" class="out"></pre>
+</section>
+
 </body>
 </html>

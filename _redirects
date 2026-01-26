@@ -1,0 +1,8 @@
+# --- HTTPS hygiene (prefer 308) ---
+http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
+
+# --- Friendly root aliases (fix “/audit.html 503” criticism) ---
+/audit.html   /portal/audit.html   308
+/status.html  /portal/status.html  308
+/docs.html    /portal/docs.html    308
+/ams.html     /portal/ams.html     308

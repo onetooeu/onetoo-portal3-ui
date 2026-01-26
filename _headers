@@ -1,0 +1,17 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Frame-Options: DENY
+
+  # HSTS (effective once HTTPS is enforced)
+  Strict-Transport-Security: max-age=15552000; includeSubDomains
+
+  # CSP (compat mode for current portal pages)
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https:;
+
+/.well-known/*.jsonl
+  Content-Type: application/x-ndjson; charset=utf-8
+
+/portal/data/**/*.jsonl
+  Content-Type: application/x-ndjson; charset=utf-8

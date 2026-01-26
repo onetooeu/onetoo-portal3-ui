@@ -183,7 +183,7 @@ function pinById(id){
 }
 
 async function loadDemo(){
-  const url = "./data/ams/demo-log.jsonl?cb=" + Date.now();
+  const url = "/.well-known/ams-demo-log.jsonl?cb=" + Date.now();
   const r = await fetch(url, { cache:"no-store" });
   const t = await r.text();
   const lines = t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
@@ -591,4 +591,5 @@ function init(){
 }
 
 init();
+
 

@@ -7,7 +7,7 @@
     "notes": "Read-only portal UI. Interactive actions are local-only unless a future gateway is enabled."
   },
   "feeds": [
-    { "name": "demo", "format": "jsonl", "url": "/portal/data/ams/demo-log.jsonl" }
+    { "name": "demo", "format": "jsonl", "url": "/.well-known/ams-demo-log.jsonl" }
   ],
   "gateway": {
     "enabled": false,
@@ -18,3 +18,4 @@
     "auto_execute": false
   }
 }
+

@@ -11,7 +11,7 @@ export const DEFAULTS = {
 };
 export async function bootstrapRuntimeConfig() {
   try {
-    const r = await fetch("/config/runtime.json", { cache: "no-store" });
+    const r = await fetch("./config/runtime.json", { cache: "no-store" });
     if (!r.ok) return null;
 
     const runtime = await r.json();
@@ -245,7 +245,7 @@ export async function federationHandshakeSnapshot() {
   // use runtime config already loaded by bootstrapRuntimeConfig()
   const runtime = window.__MOZART_CFG || null;
   const cfg = await (async () => {
-    try { return await (await fetch("/config/runtime.json", { cache:"no-store" })).json(); } catch { return null; }
+    try { return await (await fetch("./config/runtime.json", { cache:"no-store" })).json(); } catch { return null; }
   })();
 
   const disc = (cfg && cfg.discovery) ? cfg.discovery : (runtime && runtime.discovery) ? runtime.discovery : {};
@@ -293,7 +293,7 @@ function wireHandshakeUI() {
 
   btn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    out.textContent = "Running handshakeĂ„â€šĂ‹ÂÄ‚ËĂ˘â‚¬ĹˇĂ‚Â¬Ä‚â€šĂ‚Â¦";
+    out.textContent = "Running handshakeÄ‚â€žĂ˘â‚¬ĹˇÄ‚â€ąĂ‚ÂĂ„â€šĂ‹ÂÄ‚ËĂ˘â€šÂ¬ÄąË‡Ä‚â€šĂ‚Â¬Ă„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â¦";
     try {
       const res = await federationHandshakeSnapshot();
       out.textContent = JSON.stringify(res, null, 2);
@@ -348,7 +348,7 @@ function wireArtifactsUI() {
     for (const it of items) {
       const li = document.createElement("li");
       li.className = "item";
-      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} Â· ${it.bytes} bytes</div></div>`;
+      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} Ă‚Â· ${it.bytes} bytes</div></div>`;
       li.style.cursor = "pointer";
       li.addEventListener("click", () => {
         selectedKey = it.key;

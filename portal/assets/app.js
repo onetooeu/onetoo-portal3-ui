@@ -9,6 +9,41 @@ export const DEFAULTS = {
   searchRuntimeBase: "https://search.onetoo.eu",
   acceptedSetPath: "/public/dumps/contrib-accepted.json",
 };
+export async function bootstrapRuntimeConfig() {
+  try {
+    const r = await fetch("/config/runtime.json", { cache: "no-store" });
+    if (!r.ok) return null;
+
+    const runtime = await r.json();
+
+    // canonicalize onetoo.eu -> www.onetoo.eu (your live infra redirects)
+    if (runtime.trust_root && /^https:\/\/onetoo\.eu(\/|$)/.test(runtime.trust_root)) {
+      runtime.trust_root = runtime.trust_root.replace("https://onetoo.eu", "https://www.onetoo.eu");
+    }
+
+    // Map runtime.json -> app.js config keys (keep existing architecture)
+    const patch = {};
+    if (runtime.portal_api_base) patch.portalApiBase = runtime.portal_api_base;
+    if (runtime.trust_root) patch.trustRootBase = runtime.trust_root;
+    if (runtime.search_runtime) patch.searchRuntimeBase = runtime.search_runtime;
+
+    // Publish globally for debug/other modules
+    window.__MOZART_CFG = runtime;
+    window.__MOZART = window.__MOZART || {};
+    window.__MOZART.cfg = runtime;
+
+    // Persist patch so existing getConfig() picks it up
+    if (Object.keys(patch).length) setConfig(patch);
+
+    return runtime;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Auto-bootstrap on load (non-breaking)
+bootstrapRuntimeConfig();
+
 
 export function qs(sel){ return document.querySelector(sel); }
 export function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -170,7 +205,7 @@ export function mountFooter(cfg){
   const yr = new Date().getUTCFullYear();
   el.innerHTML = `<div class="footer">
     <div class="small muted">
-      © ${yr} ONETOO — deterministic, audit-friendly trust fabric. UI is read-only and does not approve or modify registry state.
+      Â© ${yr} ONETOO â€” deterministic, audit-friendly trust fabric. UI is read-only and does not approve or modify registry state.
     </div>
   </div>`;
 }

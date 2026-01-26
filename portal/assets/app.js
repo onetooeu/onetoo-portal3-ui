@@ -70,7 +70,7 @@ export function canonicalAcceptedUrl(cfg){
   return base + path;
 }
 
-async function fetchJson(url, opts={}){
+export async function fetchJson(url, opts={}){
   const resp = await fetch(url, { ...opts, headers: { "accept":"application/json", ...(opts.headers||{}) } });
   const text = await resp.text();
   let data = null;
@@ -78,7 +78,6 @@ async function fetchJson(url, opts={}){
   return { ok: resp.ok, status: resp.status, data, text, headers: resp.headers };
 }
 
-export async function fetchJson(url, opts={}) { return await fetchJson(url, opts); }
 
 export async function getAccepted(cfg){
   // Prefer worker proxy if portalApiBase set
@@ -294,7 +293,7 @@ function wireHandshakeUI() {
 
   btn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    out.textContent = "Running handshakeâ€¦";
+    out.textContent = "Running handshakeĂ˘â‚¬Â¦";
     try {
       const res = await federationHandshakeSnapshot();
       out.textContent = JSON.stringify(res, null, 2);

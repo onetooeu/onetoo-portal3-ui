@@ -1,22 +1,15 @@
-http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
+# === PASS THROUGH (never rewrite) ===
+/portal/assets/*          /portal/assets/:splat          200
+/portal/_partials/*       /portal/_partials/:splat       200
+/portal/.well-known/*     /portal/.well-known/:splat     200
+/.well-known/*            /.well-known/:splat            200
 
-/audit      /portal/audit.html   308
-/audit/     /portal/audit.html   308
-/audit.html /portal/audit.html   308
+# === ALIASES (nice short routes) ===
+/ams                       /portal/ams.html               308
+/docs                      /portal/docs.html              308
+/status                    /portal/status.html            308
+/audit                     /portal/audit.html             308
 
-/status      /portal/status.html  308
-/status/     /portal/status.html  308
-/status.html /portal/status.html  308
-
-/docs      /portal/docs.html    308
-/docs/     /portal/docs.html    308
-/docs.html /portal/docs.html    308
-
-/ams      /portal/ams.html     308
-/ams/     /portal/ams.html     308
-/ams.html /portal/ams.html     308
-
-/portal/DEPLOY_MARKER.txt /DEPLOY_MARKER.txt 308
-/portal/DEPLOY_MARKER.txt/ /DEPLOY_MARKER.txt 308
-
-/.well-known/ai-ams.json  /portal/.well-known/ai-ams.json  308
+# === SPA/portal fallbacks ===
+/portal                    /portal/index.html             200
+/portal/*                  /portal/index.html             200

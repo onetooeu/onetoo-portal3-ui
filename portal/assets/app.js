@@ -215,3 +215,102 @@ export function safeJson(txt, fallback=null){ try { return JSON.parse(txt); } ca
 export function humanBytes(n){ const u=['B','KB','MB','GB']; let i=0; let x=n; while(x>=1024 && i<u.length-1){ x/=1024; i++; } return (i===0?x: x.toFixed(2))+' '+u[i]; }
 export function fmtTs(iso){ try{ return new Date(iso).toLocaleString(); }catch(e){ return iso; } }
 export function downloadText(name, txt){ const blob=new Blob([txt],{type:'text/plain;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+
+
+/* --- Mozart Federation Handshake Snapshot --- */
+async function sha256Hex(text) {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+function saveArtifact(key, payload) {
+  const listKey = "onetoo_portal_artifacts";
+  const cur = JSON.parse(localStorage.getItem(listKey) || "[]");
+  cur.unshift({ key, ts: new Date().toISOString(), bytes: JSON.stringify(payload).length });
+  localStorage.setItem(listKey, JSON.stringify(cur.slice(0, 200)));
+  localStorage.setItem("artifact:" + key, JSON.stringify(payload, null, 2));
+}
+
+async function fetchJsonLoose(url) {
+  const r = await fetch(url, { headers: { "accept":"application/json" } });
+  const t = await r.text();
+  let j = null;
+  try { j = JSON.parse(t); } catch {}
+  return { ok: r.ok, status: r.status, url, json: j, text: t.slice(0, 2000) };
+}
+
+export async function federationHandshakeSnapshot() {
+  // use runtime config already loaded by bootstrapRuntimeConfig()
+  const runtime = window.__MOZART_CFG || null;
+  const cfg = await (async () => {
+    try { return await (await fetch("/config/runtime.json", { cache:"no-store" })).json(); } catch { return null; }
+  })();
+
+  const disc = (cfg && cfg.discovery) ? cfg.discovery : (runtime && runtime.discovery) ? runtime.discovery : {};
+  const targets = [
+    disc.trust_root_index,
+    disc.trust_root_ai_trust_hub,
+    disc.trust_root_llms,
+    disc.trust_root_sha256,
+    disc.trust_root_minisign_pub,
+    disc.search_openapi,
+    disc.agents_index,
+    disc.agents_status,
+    disc.agents_openapi
+  ].filter(Boolean);
+
+  const results = [];
+  for (const u of targets) results.push(await fetchJsonLoose(u));
+
+  const snapshot = {
+    kind: "onetoo_federation_snapshot",
+    created: new Date().toISOString(),
+    portal_origin: window.location.origin,
+    runtime: cfg || runtime,
+    targets,
+    results
+  };
+
+  const snapshotText = JSON.stringify(snapshot);
+  const sha256 = await sha256Hex(snapshotText);
+
+  const artifactKey = `federation-snapshot:${sha256}`;
+  saveArtifact(artifactKey, { sha256, snapshot });
+
+  return { ok: true, sha256, artifactKey, targets, resultsCount: results.length };
+}
+
+// wire federation.html buttons if present (robust)
+function wireHandshakeUI() {
+  const btn = document.getElementById("btnHandshake");
+  const clr = document.getElementById("btnClearHandshake");
+  const out = document.getElementById("handshakeOut");
+  if (!btn || !out) return;
+
+  btn.style.pointerEvents = "auto";
+
+  btn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    out.textContent = "Running handshake…";
+    try {
+      const res = await federationHandshakeSnapshot();
+      out.textContent = JSON.stringify(res, null, 2);
+    } catch (e) {
+      out.textContent = JSON.stringify({ ok:false, error: String(e && e.message ? e.message : e) }, null, 2);
+    }
+  });
+
+  if (clr) clr.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    out.textContent = "";
+  });
+}
+
+// Ensure wiring runs no matter the load timing
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", wireHandshakeUI);
+} else {
+  wireHandshakeUI();
+}
+/* --- end handshake --- */

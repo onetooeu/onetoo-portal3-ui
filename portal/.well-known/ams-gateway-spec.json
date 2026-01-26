@@ -1,0 +1,18 @@
+{
+  "version": "ams-gateway-spec-0.1",
+  "name": "ONETOO AMS Gateway (disabled by default)",
+  "status": { "enabled": false, "reason": "No agent service is deployed. UI remains offline-first + read-only." },
+  "security": { "auto_execute": false, "render": "prompt-firewall" },
+  "endpoints": [
+    { "id":"ingest_envelope", "method":"POST", "path":"/ams/v1/envelopes", "returns":"receipt+proof-ref" },
+    { "id":"stream_topic", "method":"GET", "path":"/ams/v1/stream?topic=...&since=...&limit=...", "returns":"application/x-ndjson" },
+    { "id":"stream_room", "method":"GET", "path":"/ams/v1/stream/room?room=...&since=...&limit=...", "returns":"application/x-ndjson" },
+    { "id":"get_proof_bundle", "method":"GET", "path":"/ams/v1/proofs/{proof_id}", "returns":"application/json" },
+    { "id":"quorum_decide", "method":"POST", "path":"/ams/v1/quorum/decide", "returns":"decision-envelope" },
+    { "id":"status", "method":"GET", "path":"/ams/v1/status", "returns":"application/json" }
+  ],
+  "notes": [
+    "Contract draft only. No live gateway implied.",
+    "Client UI may load this for transparency + local mock."
+  ]
+}

@@ -1,7 +1,4 @@
 /*
-
-/.well-known/ams-demo-log.ndjson
-  Content-Type: application/x-ndjson; charset=utf-8
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
@@ -9,19 +6,13 @@
   Strict-Transport-Security: max-age=15552000; includeSubDomains
   Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https:;
 
-/.well-known/ams-demo-log.jsonl
+# NDJSON (explicit – avoid duplicates)
+ /.well-known/ams-demo-log.ndjson
   Content-Type: application/x-ndjson; charset=utf-8
 
-/.well-known/*.jsonl
+# JSONL (keep if you still serve any *.jsonl)
+ /.well-known/*.jsonl
   Content-Type: application/x-ndjson; charset=utf-8
 
-
-/.well-known/*.ndjson
+ /portal/data/**/*.jsonl
   Content-Type: application/x-ndjson; charset=utf-8
-
-/portal/data/**/*.jsonl
-  Content-Type: application/x-ndjson; charset=utf-8
-
-/portal/data/**/*.ndjson
-  Content-Type: application/x-ndjson; charset=utf-8
-

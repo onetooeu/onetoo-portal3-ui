@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ONETOO Portal — Mozart Maximalist</title>
+  <title>ONETOO Portal â€” Mozart Maximalist</title>
   <link rel="stylesheet" href="./assets/style.css"/>
 </head>
 <body>
@@ -69,12 +69,16 @@
       qs("#"+k).value = cfg[k] || "";
     }
     const badge = document.querySelector("#cfgBadge");
-    badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+if (badge) {
+  badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+}
 
     function render(){
       const c = getConfig();
       qs("#out").textContent = JSON.stringify(c, null, 2);
-      badge.textContent = c.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+      if (badge) {
+  badge.textContent = c.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+}
     }
     render();
 

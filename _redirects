@@ -18,3 +18,5 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 
 /portal/DEPLOY_MARKER.txt /DEPLOY_MARKER.txt 308
 /portal/DEPLOY_MARKER.txt/ /DEPLOY_MARKER.txt 308
+
+/.well-known/ai-ams.json  /portal/.well-known/ai-ams.json  308

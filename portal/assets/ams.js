@@ -593,3 +593,190 @@ function init(){
 init();
 
 
+
+
+/* --- Gateway + Quorum (mock) --- */
+function lsGet(key, fallback=null){ try{ return JSON.parse(localStorage.getItem(key)||""); }catch{ return fallback; } }
+function lsSet(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+
+function nowIso(){ return new Date().toISOString(); }
+
+function env(kind, from, toArr, payload, extra={}){
+  return {
+    v: "ams-envelope-0.2",
+    id: "mock-" + kind + "-" + Math.random().toString(16).slice(2),
+    ts: nowIso(),
+    from, to: toArr,
+    kind,
+    priority: extra.priority ?? 10,
+    thread: extra.thread ?? { root: extra.root ?? null, prev: extra.prev ?? null },
+    payload,
+    policy: extra.policy ?? { score: 50, tags:["mock"], reasons:["local-only mock"] },
+    proofs: extra.proofs ?? [{type:"mock", note:"no signature"}]
+  };
+}
+
+async function loadGatewaySpec(){
+  const out = document.getElementById("gwOut");
+  const badge = document.getElementById("gwState");
+  out.textContent = "Loading spec…";
+  try{
+    const r = await fetch("/.well-known/ams-gateway-spec.json", { cache:"no-store" });
+    const t = await r.text();
+    out.textContent = t;
+    badge.textContent = "disabled (spec loaded)";
+  }catch(e){
+    out.textContent = String(e?.message||e);
+    badge.textContent = "error";
+  }
+}
+
+function toggleMockGateway(){
+  const key = "onetoo_ams_gateway_mock";
+  const cur = localStorage.getItem(key) === "1";
+  const next = !cur;
+  localStorage.setItem(key, next ? "1" : "0");
+  const badge = document.getElementById("gwState");
+  badge.textContent = next ? "mock enabled" : "disabled";
+}
+
+function quorumKey(room){ return "onetoo_ams_quorum:" + room; }
+function quorumLoad(room){
+  return lsGet(quorumKey(room), { room, threshold:"2-of-3", proposal:null, votes:[], decided:false, decision:null });
+}
+function quorumSave(room, st){ lsSet(quorumKey(room), st); }
+
+function quorumRender(st){
+  const out = document.getElementById("qOut");
+  out.textContent = JSON.stringify(st, null, 2);
+  document.getElementById("qState").textContent = st.decided ? "decided" : st.proposal ? "active" : "idle";
+}
+
+function quorumComputeDecision(st){
+  const yes = st.votes.filter(v=>v.choice==="yes").length;
+  const no = st.votes.filter(v=>v.choice==="no").length;
+  // parse "2-of-3" → 2
+  const need = parseInt(String(st.threshold).split("-of-")[0], 10) || 2;
+  const result = yes >= need ? "accepted" : (no >= need ? "rejected" : "undecided");
+  return { yes, no, need, result };
+}
+
+function wireGatewayAndQuorum(){
+  const gwLoad = document.getElementById("gwLoadSpec");
+  const gwMock = document.getElementById("gwMockToggle");
+  gwLoad && (gwLoad.onclick = loadGatewaySpec);
+  gwMock && (gwMock.onclick = toggleMockGateway);
+
+  const qRoom = document.getElementById("qRoom");
+  const qThresh = document.getElementById("qThresh");
+  const btnP = document.getElementById("qNewProposal");
+  const btnY = document.getElementById("qVoteYes");
+  const btnN = document.getElementById("qVoteNo");
+  const btnD = document.getElementById("qDecide");
+
+  function getRoom(){ return (qRoom?.value||"room:core").trim(); }
+
+  function load(){
+    const room = getRoom();
+    const st = quorumLoad(room);
+    st.threshold = (qThresh?.value||st.threshold);
+    quorumRender(st);
+    return st;
+  }
+  function save(st){
+    const room = getRoom();
+    st.threshold = (qThresh?.value||st.threshold);
+    quorumSave(room, st);
+    quorumRender(st);
+  }
+
+  btnP && (btnP.onclick = ()=>{
+    const st = load();
+    const root = "q-" + Math.random().toString(16).slice(2);
+    st.proposal = env("proposal","agent:composer",[getRoom()],{ title:"Proposal", body:"Describe desired action / change." }, { root, thread:{root,prev:null}, policy:{score:80,tags:["proposal","quorum"],reasons:["mock proposal"]} });
+    st.votes = [];
+    st.decided = false;
+    st.decision = null;
+    save(st);
+  });
+
+  btnY && (btnY.onclick = ()=>{
+    const st = load();
+    if (!st.proposal) return alert("Create proposal first");
+    st.votes.push(env("vote","agent:reviewer",[getRoom()],{ choice:"yes" }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }));
+    save(st);
+  });
+
+  btnN && (btnN.onclick = ()=>{
+    const st = load();
+    if (!st.proposal) return alert("Create proposal first");
+    st.votes.push(env("vote","agent:reviewer",[getRoom()],{ choice:"no" }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }));
+    save(st);
+  });
+
+  btnD && (btnD.onclick = ()=>{
+    const st = load();
+    if (!st.proposal) return alert("Create proposal first");
+    const d = quorumComputeDecision(st);
+    st.decision = env("decision","agent:conductor",[getRoom()],{
+      threshold: st.threshold,
+      tally: d,
+      result: d.result,
+      proposal_id: st.proposal.id,
+      votes: st.votes.map(v=>({id:v.id, choice:v.payload?.choice}))
+    }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id, policy:{score:90,tags:["decision","quorum"],reasons:["mock deterministic decision"]} });
+    st.decided = (d.result !== "undecided");
+    save(st);
+  });
+
+  // initial render
+  load();
+}
+
+document.addEventListener("DOMContentLoaded", wireGatewayAndQuorum);
+
+
+
+
+
+/* ============================
+   AMS_PANEL_ROUTER_V1
+   Shows special panels: gateway/quorum
+   without touching existing list renderer.
+============================ */
+function __amsRoutePanels(tab){
+  const panels = Array.from(document.querySelectorAll("section.panel[data-panel]"));
+  for (const p of panels){
+    p.style.display = (p.dataset.panel === tab) ? "block" : "none";
+  }
+
+  // Hide main AMS grid when opening special panels
+  const grid = document.querySelector(".amsGrid");
+  if (grid){
+    grid.style.display = (tab === "gateway" || tab === "quorum") ? "none" : "";
+  }
+
+  // Smooth scroll to panel if opened
+  if (tab === "gateway"){
+    const el = document.getElementById("panelGateway");
+    el && el.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+  if (tab === "quorum"){
+    const el = document.getElementById("panelQuorum");
+    el && el.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+}
+
+// Lightweight hook: runs alongside existing tab logic
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".amsTabs [data-tab]");
+  if (!btn) return;
+  __amsRoutePanels(btn.dataset.tab);
+});
+
+// On load: ensure special panels are hidden
+document.addEventListener("DOMContentLoaded", () => {
+  const active = document.querySelector(".amsTabs .active")?.dataset?.tab || "inbox";
+  __amsRoutePanels(active);
+});
+

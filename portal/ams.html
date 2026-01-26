@@ -34,8 +34,11 @@
         <button class="btn" data-tab="threads">Threads</button>
         <button class="btn" data-tab="vault">Vault</button>
         <button class="btn" data-tab="map">Map</button>
-        <button class="btn" data-tab="quorum">Quorum</button>
+                <button class="btn" data-tab="gateway">Gateway</button>
+<button class="btn" data-tab="quorum">Quorum</button>
         <button class="btn" data-tab="policy">Policy</button>
+        <button class="btn" data-tab="gateway">Gateway</button>
+        <button class="btn" data-tab="gateway">Gateway</button>
       </div>
 
       <div class="amsGrid">
@@ -142,5 +145,60 @@
 
   <div id="footer"></div>
   <script type="module" src="./assets/ams.js"></script>
+<section class="panel" data-panel="gateway" id="panelGateway" style="display:none">
+  <div class="card">
+    <div class="row between">
+      <h2 style="margin:0">Gateway (disabled)</h2>
+      <span class="badge subtle">read-only UI</span>
+    </div>
+    <p class="small">
+      AMS is not an email client. This UI is offline-first and does not send messages.
+      Gateway is intentionally <b>disabled</b> until an agent service exists.
+    </p>
+    <div class="row">
+      <button class="btn" id="gwLoadSpec">Load spec</button>
+      <button class="btn" id="gwMockToggle">Enable Mock Gateway (local)</button>
+      <span class="badge" id="gwState">disabled</span>
+    </div>
+    <pre class="mono small" id="gwOut"></pre>
+    <p class="small muted">
+      Contract draft lives at <code>/.well-known/ams-gateway-spec.json</code>. Mock mode stores a local "gateway" flag and generates receipts locally.
+    </p>
+  </div>
+</section>
+
+<section class="panel" data-panel="quorum" id="panelQuorum" style="display:none">
+  <div class="card">
+    <div class="row between">
+      <h2 style="margin:0">Quorum Room (mock)</h2>
+      <span class="badge ok">decision-first</span>
+    </div>
+    <p class="small">Default is <b>proposal → votes → decision</b> (not chat). Deterministic replay friendly.</p>
+
+    <div class="grid two">
+      <div class="field">
+        <label>Room</label>
+        <input id="qRoom" value="room:core" />
+      </div>
+      <div class="field">
+        <label>Threshold</label>
+        <input id="qThresh" value="2-of-3" />
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn ok" id="qNewProposal">New proposal</button>
+      <button class="btn" id="qVoteYes">Vote YES</button>
+      <button class="btn" id="qVoteNo">Vote NO</button>
+      <button class="btn" id="qDecide">Compute decision</button>
+      <span class="badge" id="qState">idle</span>
+    </div>
+
+    <pre class="mono small" id="qOut"></pre>
+    <p class="small muted">Mock stores room state in localStorage only (no network). Use Vault to pin resulting decision envelopes.</p>
+  </div>
+</section>
+
 </body>
 </html>
+

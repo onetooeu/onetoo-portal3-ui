@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Status — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Endpoint status</h1>
+      <p class="small">Checks are read-only GET requests. Results are shown with HTTP codes and timing.</p>
+      <div class="row">
+        <button class="primary" id="run">Run checks</button>
+        <span class="badge" id="mode"></span>
+      </div>
+      <table class="table">
+        <thead><tr><th>Endpoint</th><th>HTTP</th><th>ms</th><th>Notes</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Config snapshot</h2>
+      <pre class="mono small" id="cfg"></pre>
+      <hr/>
+      <h3>What to expect</h3>
+      <ul class="small">
+        <li>If Portal API is configured, accepted-set is fetched via <span class="kbd">/portal/v1/accepted</span>.</li>
+        <li>If not, portal fetches trust root directly (may be blocked by CORS in some setups).</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    import {getConfig, canonicalAcceptedUrl, mountHeader, mountFooter} from "./assets/app.js";
+    async function loadHeader(){ const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text(); }
+    await loadHeader();
+    const cfg = getConfig();
+    mountHeader(cfg);
+    mountFooter(cfg);
+    document.querySelector("#cfgBadge").textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+    document.querySelector("#cfg").textContent = JSON.stringify(cfg, null, 2);
+    document.querySelector("#mode").textContent = cfg.portalApiBase ? "mode: portal-api" : "mode: direct";
+
+    const rows = document.querySelector("#rows");
+    const mk = (name,url) => ({ name, url });
+
+    const endpoints = [
+      mk("search runtime: /health", cfg.searchRuntimeBase.replace(/\/$/,"") + "/health"),
+      mk("search runtime: /openapi.json", cfg.searchRuntimeBase.replace(/\/$/,"") + "/openapi.json"),
+      mk("search runtime: /search/v1?q=hgp&limit=5", cfg.searchRuntimeBase.replace(/\/$/,"") + "/search/v1?q=hgp&limit=5"),
+      mk("trust root: accepted-set", canonicalAcceptedUrl(cfg)),
+    ];
+
+    if (cfg.portalApiBase){
+      endpoints.unshift(mk("portal api: /portal/v1/health", cfg.portalApiBase.replace(/\/$/,"") + "/portal/v1/health"));
+      endpoints.unshift(mk("portal api: /portal/v1/accepted", cfg.portalApiBase.replace(/\/$/,"") + "/portal/v1/accepted"));
+    }
+
+    async function ping(ep){
+      const t0 = performance.now();
+      try{
+        const resp = await fetch(ep.url, { method:"GET" });
+        const ms = Math.round(performance.now()-t0);
+        return { ok: resp.ok, status: resp.status, ms, note: resp.ok ? "" : "non-200" };
+      }catch(e){
+        const ms = Math.round(performance.now()-t0);
+        return { ok:false, status:"ERR", ms, note: String(e).slice(0,120) };
+      }
+    }
+
+    async function run(){
+      rows.innerHTML="";
+      for (const ep of endpoints){
+        const r = await ping(ep);
+        const tr = document.createElement("tr");
+        const b = r.ok ? "badge ok" : "badge bad";
+        tr.innerHTML = `
+          <td><div><a href="${ep.url}" target="_blank" rel="noreferrer">${ep.name}</a></div><div class="small mono">${ep.url}</div></td>
+          <td><span class="${b}">${r.status}</span></td>
+          <td class="mono">${r.ms}</td>
+          <td class="small">${r.note}</td>
+        `;
+        rows.appendChild(tr);
+      }
+    }
+
+    document.querySelector("#run").onclick = run;
+  </script>
+
+  <div id="footer"></div>
+</body>
+</html>

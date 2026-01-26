@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Merchant — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container">
+    
+<div class="card">
+  <h1>Merchant (experimental)</h1>
+  <p>
+    Generate <b>offers</b> and <b>receipts</b> as canonical JSON objects that can be published and signed.
+    Think of it as a trust-first “paper trail generator”.
+  </p>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>Offer / Invoice builder</h2>
+    <label>Title</label>
+    <input id="mTitle" placeholder="Service / Product"/>
+    <label>Counterparty (optional)</label>
+    <input id="mParty" placeholder="Domain / name"/>
+    <label>Amount (optional)</label>
+    <input id="mAmount" placeholder="e.g. 100 EUR"/>
+    <label>Notes</label>
+    <textarea id="mNotes" rows="6"></textarea>
+    <div class="row">
+      <button class="btn" id="mBuild">Build JSON</button>
+      <button class="btn" id="mDownload" disabled>Download</button>
+    </div>
+    <pre id="mOut" class="mono"></pre>
+  </div>
+  <div class="card">
+    <h2>Receipt from a hash</h2>
+    <p>Paste SHA-256 of a document (PDF contract, exported offer, etc.) and mint a receipt.</p>
+    <input id="rHash" placeholder="64-hex sha256"/>
+    <div class="row">
+      <button class="btn" id="rBuild">Create receipt</button>
+      <button class="btn" id="rDownload" disabled>Download</button>
+    </div>
+    <pre id="rOut" class="mono"></pre>
+  </div>
+</div>
+
+  </div>
+  <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/merchant.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Artifacts — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Artifact resolver</h1>
+      <p class="small">
+        Enter an entity URL or well-known base and get a deterministic list of expected artifacts.
+        This is a helper for publishers and auditors (read-only).
+      </p>
+
+      <div class="field">
+        <label>Entity URL (home page) or well-known base</label>
+        <input id="u" placeholder="https://www.hgpedu.eu/ or https://www.hgpedu.eu/.well-known/" />
+      </div>
+      <div class="row">
+        <button class="btn ok" id="run">Resolve artifacts</button>
+        <button class="btn" id="example">Use HGPEdu example</button>
+      </div>
+
+      <pre id="out" class="mono small"></pre>
+    </div>
+
+    <div class="card">
+      <h2>Expected artifacts</h2>
+      <div id="list" class="list"></div>
+      <p class="small muted">
+        Note: signature verification is intentionally performed <b>client-side</b> (minisign) for portability and auditability.
+      </p>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+
+  <script type="module">
+    import { getConfig, mountHeader, mountFooter, escapeHtml, norm } from "./assets/app.js";
+    const cfg = getConfig(); mountHeader(cfg); mountFooter(cfg);
+
+    const u = document.getElementById("u");
+    const out = document.getElementById("out");
+    const list = document.getElementById("list");
+
+    function normalizeWellKnown(x){
+      x = String(x||"").trim();
+      if (!x) return "";
+      if (x.endsWith("/.well-known/")) return x.slice(0, -1);
+      if (x.endsWith("/.well-known")) return x;
+      // if it's homepage
+      x = x.replace(/\/+$/,"");
+      return x + "/.well-known";
+    }
+
+    function expectedArtifacts(wk){
+      const base = wk.replace(/\/+$/,"");
+      return [
+        base + "/minisign.pub",
+        base + "/sha256.json",
+        base + "/sha256.json.minisig",
+        base + "/ai-trust-hub.json",
+        base + "/ai-governance.json",
+        base + "/first-read.json",
+      ];
+    }
+
+    function render(urls){
+      list.innerHTML = urls.map(x=>`<div class="item">
+        <a href="${x}" target="_blank" rel="noopener">${escapeHtml(x)}</a>
+      </div>`).join("") || "<div class='small muted'>No artifacts.</div>";
+    }
+
+    function run(){
+      const wk = normalizeWellKnown(u.value);
+      const urls = expectedArtifacts(wk);
+      out.textContent = JSON.stringify({ input: u.value, wellKnown: wk, artifacts: urls }, null, 2);
+      render(urls);
+    }
+
+    document.getElementById("run").onclick = run;
+    document.getElementById("example").onclick = ()=>{ u.value = "https://www.hgpedu.eu/"; run(); };
+  </script>
+</body>
+</html>

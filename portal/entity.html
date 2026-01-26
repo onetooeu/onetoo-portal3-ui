@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Entity — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1 id="title">Entity</h1>
+      <div class="row">
+        <span class="badge" id="idBadge"></span>
+        <span class="badge" id="kindBadge"></span>
+        <span class="badge" id="srcBadge"></span>
+      </div>
+      <p id="desc"></p>
+      <div class="row small">
+        <span class="badge" id="topics"></span>
+        <span class="badge" id="langs"></span>
+      </div>
+      <hr/>
+      <h3>Links</h3>
+      <div class="grid" id="links"></div>
+      <hr/>
+      <h3>Verification commands (copy/paste)</h3>
+      <p class="small">These are safe suggestions; no secrets required.</p>
+      <pre class="mono small" id="verify"></pre>
+    </div>
+
+    <div class="card">
+      <h2>Raw JSON</h2>
+      <pre class="mono small" id="raw"></pre>
+      <hr/>
+      <h3>Explain scoring</h3>
+      <div class="row">
+        <input id="q" placeholder="query for explain (e.g. hgp)"/>
+        <button class="primary" id="run">Explain</button>
+      </div>
+      <pre class="mono small" id="explain"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import {getConfig, getEntity, stableId, scoreExplain, escapeHtml, mountHeader, mountFooter} from "./assets/app.js";
+    async function loadHeader(){ const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text(); }
+    await loadHeader();
+    const cfg = getConfig();
+    mountHeader(cfg);
+    mountFooter(cfg);
+    document.querySelector("#cfgBadge").textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("id") || "";
+    document.querySelector("#idBadge").textContent = "id: " + id;
+
+    const out = await getEntity(cfg, id);
+    document.querySelector("#srcBadge").textContent = "source: " + (out.source||"?");
+
+    if (!out.ok){
+      document.querySelector("#title").textContent = "Not found";
+      document.querySelector("#raw").textContent = JSON.stringify(out, null, 2);
+      throw new Error("not found");
+    }
+
+    const it = out.data;
+    document.querySelector("#title").textContent = it.title || "(untitled)";
+    document.querySelector("#kindBadge").textContent = "kind: " + (it.kind || "");
+    document.querySelector("#desc").textContent = it.description || "";
+    document.querySelector("#topics").textContent = "topics: " + (Array.isArray(it.topics)?it.topics.join(", "):"");
+    document.querySelector("#langs").textContent = "languages: " + (Array.isArray(it.languages)?it.languages.join(", "):"");
+
+    const links = [];
+    if (it.url) links.push(["Homepage", it.url]);
+    if (it.repo) links.push(["Repo", it.repo]);
+    if (it.wellKnown) links.push([".well-known", it.wellKnown]);
+    if (it.contact) links.push(["Contact", it.contact]);
+
+    const box = document.querySelector("#links");
+    for (const [label, href] of links){
+      const a = document.createElement("a");
+      a.href = href; a.target="_blank"; a.rel="noreferrer";
+      a.className = "badge ok";
+      a.textContent = label + " ↗";
+      box.appendChild(a);
+    }
+
+    // verify suggestions (generic; adjust to your standard)
+    const wk = it.wellKnown || "";
+    const verify = [
+      "# Fetch and inspect well-known:",
+      wk ? `curl -sS "${wk}" | head` : "# (no wellKnown in entity)",
+      "",
+      "# Search runtime lookup (deterministic):",
+      it.title ? `curl -sS "https://search.onetoo.eu/search/v1?q=${encodeURIComponent(it.title)}&limit=10" | head` : "# (no title)",
+    ].join("\n");
+    document.querySelector("#verify").textContent = verify;
+
+    document.querySelector("#raw").textContent = JSON.stringify(it, null, 2);
+
+    document.querySelector("#run").onclick = () => {
+      const q = document.querySelector("#q").value.trim();
+      const ex = scoreExplain(it, q);
+      document.querySelector("#explain").textContent = JSON.stringify(ex, null, 2);
+    };
+  </script>
+
+  <div id="footer"></div>
+</body>
+</html>

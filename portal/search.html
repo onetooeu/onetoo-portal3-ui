@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Search — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Deterministic search</h1>
+      <p class="small">Uses search runtime (Phase 3B). If Portal API is set, search is proxied for CORS stability.</p>
+      <div class="row">
+        <input id="q" placeholder="query (e.g. hgp)"/>
+        <input id="limit" placeholder="limit" value="10"/>
+        <button class="primary" id="go">Search</button>
+      </div>
+      <div class="row">
+        <span class="badge" id="src"></span>
+        <span class="badge" id="meta"></span>
+      </div>
+      <div id="err" class="badge bad" style="display:none"></div>
+      <table class="table" id="tbl">
+        <thead><tr><th>Title</th><th>Score</th><th>Kind</th><th>Description</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Raw JSON</h2>
+      <pre class="mono small" id="raw"></pre>
+      <hr/>
+      <h3>Explain (local)</h3>
+      <p class="small">Local scoring rules (must match runtime). Use Entity page for per-item breakdown.</p>
+      <pre class="mono small" id="rules"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import {getConfig, portalSearch, escapeHtml, mountHeader, mountFooter} from "./assets/app.js";
+    async function loadHeader(){ const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text(); }
+    await loadHeader();
+    const cfg = getConfig();
+    mountHeader(cfg);
+    mountFooter(cfg);
+    document.querySelector("#cfgBadge").textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+
+    const els = {
+      q: document.querySelector("#q"),
+      limit: document.querySelector("#limit"),
+      go: document.querySelector("#go"),
+      src: document.querySelector("#src"),
+      meta: document.querySelector("#meta"),
+      err: document.querySelector("#err"),
+      body: document.querySelector("#tbl tbody"),
+      raw: document.querySelector("#raw"),
+      rules: document.querySelector("#rules"),
+    };
+
+    els.rules.textContent = [
+      "title includes query: +5",
+      "description includes query: +3",
+      "topics contain query: +4",
+      "languages contain query: +1",
+      "url includes query: +1",
+      "filter: score > 0",
+      "sort: score desc"
+    ].join("\n");
+
+    async function run(){
+      els.err.style.display="none";
+      const q = els.q.value.trim();
+      const limit = parseInt(els.limit.value||"10", 10);
+      const out = await portalSearch(cfg, q, Number.isFinite(limit)?limit:10);
+      els.src.textContent = "source: " + (out.source||"?");
+      if (!out.ok){
+        els.err.style.display="inline-flex";
+        els.err.textContent = `Search failed HTTP ${out.status}`;
+        els.raw.textContent = out.text || JSON.stringify(out, null, 2);
+        els.body.innerHTML="";
+        return;
+      }
+      els.raw.textContent = JSON.stringify(out.data, null, 2);
+      const meta = out.data?.meta ? `hits:${out.data.meta.hits ?? ""} total:${out.data.meta.total_items ?? ""}` : "";
+      els.meta.textContent = meta;
+
+      const results = Array.isArray(out.data?.results) ? out.data.results : [];
+      els.body.innerHTML="";
+      for (const r of results){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><a href="${escapeHtml(r.url||"")}" target="_blank" rel="noreferrer">${escapeHtml(r.title||"(untitled)")}</a></td>
+          <td class="mono">${escapeHtml(r.score ?? "")}</td>
+          <td>${escapeHtml(r.kind||"")}</td>
+          <td class="small">${escapeHtml(r.description||"")}</td>
+        `;
+        els.body.appendChild(tr);
+      }
+    }
+
+    els.go.onclick = run;
+    if (new URL(location.href).searchParams.get("q")){
+      els.q.value = new URL(location.href).searchParams.get("q");
+      run();
+    }
+  </script>
+
+  <div id="footer"></div>
+</body>
+</html>

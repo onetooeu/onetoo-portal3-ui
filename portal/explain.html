@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Explain — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container">
+    
+<div class="card">
+  <h1>Explain (Mozart / Maximalist)</h1>
+  <p>
+    Deterministic, auditable scoring + trust signals, designed to remain verifiable for a decade.
+    This page explains <b>what the portal shows</b> and <b>why</b>.
+  </p>
+  <ul>
+    <li><b>Read-only</b> by default — it visualizes published artifacts.</li>
+    <li><b>Deterministic</b> — same input, same output (no hidden ML decisions).</li>
+    <li><b>Composable</b> — UI, worker API, and trust-root artifacts can evolve independently.</li>
+  </ul>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>Scoring preview</h2>
+    <p>Paste an entity JSON snippet (or an object) and see the computed score.</p>
+    <textarea id="scoreIn" class="mono" rows="10" placeholder='{"id":"example","type":"entity","trust":{"minisign":true}}'></textarea>
+    <div class="row">
+      <button class="btn" id="scoreBtn">Compute</button>
+      <span class="badge" id="scoreBadge">—</span>
+    </div>
+    <pre id="scoreOut" class="mono"></pre>
+  </div>
+  <div class="card">
+    <h2>Signals (what matters)</h2>
+    <ul>
+      <li>Published <code>sha256.json</code> + signature (minisign / cosign) under <code>/.well-known/</code></li>
+      <li>Stable pointer files (AI entry points) with explicit versioning</li>
+      <li>Clear contact + security disclosure path</li>
+      <li>Change log / audit trail</li>
+      <li>Federation-ready identifiers (domain-bound)</li>
+    </ul>
+    <p class="muted">You can tune scoring locally; production scoring should be published and signed.</p>
+  </div>
+</div>
+
+  </div>
+  <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/explain.js"></script>
+</body>
+</html>

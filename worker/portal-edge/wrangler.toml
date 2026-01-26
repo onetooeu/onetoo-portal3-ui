@@ -1,0 +1,14 @@
+name = "onetoo-portal-edge"
+main = "src/index.ts"
+compatibility_date = "2026-01-25"
+workers_dev = true
+
+# Example: route under portal domain (adjust zone/pattern to your DNS)
+# routes = [{ pattern = "portal-api.onetoo.eu/*", zone_name = "onetoo.eu" }]
+
+[vars]
+TRUST_ROOT_BASE = "https://www.onetoo.eu"
+SEARCH_RUNTIME_BASE = "https://search.onetoo.eu"
+ACCEPTED_SET_PATH = "/public/dumps/contrib-accepted.json"
+CORS_ALLOW_ORIGIN = "*"
+CACHE_TTL_SECONDS = "60"

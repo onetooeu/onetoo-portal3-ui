@@ -1,0 +1,93 @@
+{
+  "name": "ONETOO Portal Mozart Maximalist",
+  "version": "2026-01-26",
+  "kind": "portal",
+  "ui": {
+    "base": "/portal/",
+    "routes": [
+      {
+        "name": "home",
+        "path": "/portal/index.html"
+      },
+      {
+        "name": "registry",
+        "path": "/portal/entities.html"
+      },
+      {
+        "name": "search",
+        "path": "/portal/search.html"
+      },
+      {
+        "name": "status",
+        "path": "/portal/status.html"
+      },
+      {
+        "name": "notary",
+        "path": "/portal/notary.html"
+      },
+      {
+        "name": "merchant",
+        "path": "/portal/merchant.html"
+      },
+      {
+        "name": "room",
+        "path": "/portal/room.html"
+      },
+      {
+        "name": "federation",
+        "path": "/portal/federation.html"
+      },
+      {
+        "name": "artifacts",
+        "path": "/portal/artifacts.html"
+      },
+      {
+        "name": "audit",
+        "path": "/portal/audit.html"
+      },
+      {
+        "name": "explain",
+        "path": "/portal/explain.html"
+      },
+      {
+        "name": "docs",
+        "path": "/portal/docs.html"
+      }
+    ]
+  },
+  "api": {
+    "worker": "(configure via worker/portal-edge)",
+    "endpoints": [
+      {
+        "path": "/api/health",
+        "method": "GET",
+        "desc": "worker health"
+      },
+      {
+        "path": "/api/status",
+        "method": "GET",
+        "desc": "trust + runtime status summary"
+      },
+      {
+        "path": "/api/entities",
+        "method": "GET",
+        "desc": "accepted registry entities"
+      },
+      {
+        "path": "/api/entity/{id}",
+        "method": "GET",
+        "desc": "single entity"
+      },
+      {
+        "path": "/api/search?q=...",
+        "method": "GET",
+        "desc": "proxy search runtime query"
+      }
+    ]
+  },
+  "trust": {
+    "sha256_manifest": "/.well-known/sha256.json",
+    "minisign_pub": "/.well-known/minisign.pub",
+    "notes": "Generate sha256.json via scripts/gen_sha256_manifest.py and sign it with minisign."
+  }
+}

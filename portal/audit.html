@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Audit — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Audit & transparency</h1>
+      <p class="small">
+        This view helps auditors and operators quickly verify that the ecosystem is consistent:
+        canonical URLs, signatures, manifests, and service health. It does not create or modify trust.
+      </p>
+
+      <div class="row">
+        <button class="btn ok" id="run">Run audit checks</button>
+        <a class="btn" href="https://search.onetoo.eu/openapi.json" target="_blank" rel="noopener">Search OpenAPI</a>
+        <a class="btn" href="https://www.onetoo.eu/.well-known/sha256.json" target="_blank" rel="noopener">Trust sha256.json</a>
+      </div>
+
+      <pre id="out" class="mono small"></pre>
+    </div>
+
+    <div class="card">
+      <h2>Checklist</h2>
+      <ul class="checklist" id="list"></ul>
+      <h2>Verify locally (CLI)</h2>
+      <pre class="mono small"># verify trust root manifest signature
+curl -sS https://www.onetoo.eu/.well-known/sha256.json -o sha256.json
+curl -sS https://www.onetoo.eu/.well-known/sha256.json.minisig -o sha256.json.minisig
+curl -sS https://www.onetoo.eu/.well-known/minisign.pub -o minisign.pub
+minisign -V -p minisign.pub -m sha256.json -x sha256.json.minisig</pre>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+
+  <script type="module">
+    import { getConfig, mountHeader, mountFooter, fetchJson, escapeHtml } from "./assets/app.js";
+    const cfg = getConfig(); mountHeader(cfg); mountFooter(cfg);
+
+    const out = document.getElementById("out");
+    const list = document.getElementById("list");
+    const btn = document.getElementById("run");
+
+    async function check(url, expectJson=false){
+      const r = await fetch(url, { headers: { "accept": expectJson ? "application/json" : "*/*" }});
+      return { url, ok: r.ok, status: r.status, ct: r.headers.get("content-type")||"" };
+    }
+
+    function itemRow(x){
+      const ok = x.ok ? "ok" : "bad";
+      return `<li class="${ok}">
+        <span class="badge ${ok}">${x.ok ? "OK" : "FAIL"}</span>
+        <a href="${x.url}" target="_blank" rel="noopener">${escapeHtml(x.url)}</a>
+        <span class="muted small">(${x.status} ${escapeHtml(x.ct)})</span>
+      </li>`;
+    }
+
+    async function run(){
+      out.textContent = "Running…";
+      const checks = [
+        await check(cfg.trustRootBase + "/.well-known/sha256.json", true),
+        await check(cfg.trustRootBase + "/.well-known/minisign.pub", false),
+        await check(cfg.trustRootBase + cfg.acceptedSetPath, true),
+        await check(cfg.searchRuntimeBase + "/openapi.json", true),
+        await check(cfg.searchRuntimeBase + "/health", true),
+      ];
+      list.innerHTML = checks.map(itemRow).join("");
+      out.textContent = JSON.stringify({ config: cfg, checks }, null, 2);
+    }
+
+    btn.onclick = run;
+  </script>
+</body>
+</html>

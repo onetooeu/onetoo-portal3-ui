@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>/portal/index.html</loc></url>
+  <url><loc>/portal/entities.html</loc></url>
+  <url><loc>/portal/entity.html</loc></url>
+  <url><loc>/portal/search.html</loc></url>
+  <url><loc>/portal/status.html</loc></url>
+  <url><loc>/portal/notary.html</loc></url>
+  <url><loc>/portal/merchant.html</loc></url>
+  <url><loc>/portal/room.html</loc></url>
+  <url><loc>/portal/federation.html</loc></url>
+  <url><loc>/portal/artifacts.html</loc></url>
+  <url><loc>/portal/audit.html</loc></url>
+  <url><loc>/portal/explain.html</loc></url>
+  <url><loc>/portal/docs.html</loc></url>
+</urlset>

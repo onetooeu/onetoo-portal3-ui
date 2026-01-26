@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Notary — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container">
+    
+<div class="card">
+  <h1>Digital Notary (experimental)</h1>
+  <p>
+    Create a <b>portable receipt</b> for any file or text: compute SHA-256, generate canonical JSON,
+    and export it for long-term verification.
+  </p>
+  <div class="grid two">
+    <div>
+      <h2>1) Hash a file</h2>
+      <input type="file" id="fileIn"/>
+      <div class="row">
+        <button class="btn" id="hashFileBtn">Hash</button>
+        <button class="btn" id="dlReceiptBtn" disabled>Download receipt</button>
+      </div>
+      <pre id="fileOut" class="mono"></pre>
+    </div>
+    <div>
+      <h2>2) Hash text</h2>
+      <textarea id="textIn" class="mono" rows="8" placeholder="Paste text here…"></textarea>
+      <div class="row">
+        <button class="btn" id="hashTextBtn">Hash text</button>
+        <button class="btn" id="dlTextReceiptBtn" disabled>Download receipt</button>
+      </div>
+      <pre id="textOut" class="mono"></pre>
+    </div>
+  </div>
+  <hr/>
+  <h2>Verify</h2>
+  <p>Drop a receipt JSON here to sanity-check structure (hash verification is local; signature verification requires your chosen signer).</p>
+  <input type="file" id="receiptIn" accept=".json,application/json"/>
+  <pre id="verifyOut" class="mono"></pre>
+  <p class="muted">
+    Tip: for decade-grade proofs, publish receipts under your trust-root and sign your <code>sha256.json</code> manifest with minisign.
+  </p>
+</div>
+
+  </div>
+  <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/notary.js"></script>
+</body>
+</html>

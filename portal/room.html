@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Room — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container">
+    
+<div class="card">
+  <h1>AI Room (private workspace, 12MB cap)</h1>
+  <p>
+    A small local “room” for notes, drafts, receipts, and pointers.
+    Stored in your browser (<b>localStorage</b>) and capped to ~12MB to stay lightweight.
+  </p>
+  <div class="row">
+    <button class="btn" id="roomSaveBtn">Save</button>
+    <button class="btn" id="roomExportBtn">Export</button>
+    <label class="btn" style="display:inline-flex; gap:.5rem; align-items:center;">
+      Import <input type="file" id="roomImportIn" accept=".json,application/json" style="display:none"/>
+    </label>
+    <span class="badge" id="roomSize">—</span>
+  </div>
+  <textarea id="roomEditor" class="mono" rows="20" spellcheck="false"></textarea>
+  <p class="muted">Nothing is uploaded. If you clear browser storage, your room is gone — export if it matters.</p>
+</div>
+
+  </div>
+  <script type="module" src="./assets/app.js"></script>
+  <script type="module" src="./assets/room.js"></script>
+</body>
+</html>

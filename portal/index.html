@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ONETOO Portal — Mozart Maximalist</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Human-friendly trust browser</h1>
+      <p>
+        This portal is a <b>read-only</b> UI for the ONETOO trust ecosystem.
+        It visualizes publicly published artifacts from the trust root and search runtime.
+      </p>
+      <div class="row">
+        <a class="badge ok" href="./entities.html">Browse registry</a>
+        <a class="badge ok" href="./search.html">Run deterministic search</a>
+        <a class="badge" href="./federation.html">Federation</a>
+        <a class="badge" href="./audit.html">Audit</a>
+        <a class="badge" href="./artifacts.html">Artifacts</a>
+        <a class="badge" href="./status.html">Endpoint status</a>
+      </div>
+      <hr/>
+      <h3>Core invariants</h3>
+      <ul>
+        <li>No writes. No approvals. No overrides.</li>
+        <li>Deterministic behavior. No ML. No profiling.</li>
+        <li>Everything links to verifiable artifacts (hashes, signatures, provenance).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Configuration</h2>
+      <p class="small">Portal can work in two modes: direct (browser fetches trust-root/search) or via the Portal Worker API (recommended).</p>
+
+      <div class="grid">
+        <label class="small">Portal API base (optional, recommended)</label>
+        <input id="portalApiBase" placeholder="https://portal-api.onetoo.eu (or workers.dev)"/>
+        <label class="small">Trust root base</label>
+        <input id="trustRootBase" placeholder="https://www.onetoo.eu"/>
+        <label class="small">Search runtime base</label>
+        <input id="searchRuntimeBase" placeholder="https://search.onetoo.eu"/>
+        <label class="small">Accepted-set path</label>
+        <input id="acceptedSetPath" placeholder="/public/dumps/contrib-accepted.json"/>
+
+        <div class="row">
+          <button class="primary" id="save">Save</button>
+          <button class="ghost" id="reset">Reset defaults</button>
+          <a class="badge" href="./status.html">Verify</a>
+        </div>
+        <pre class="mono small" id="out"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {getConfig, setConfig, qs, mountHeader, mountFooter} from "./assets/app.js";
+    async function loadHeader(){
+      const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text();
+    }
+    await loadHeader();
+    const cfg = getConfig();
+    mountHeader(cfg);
+    mountFooter(cfg);
+    for (const k of ["portalApiBase","trustRootBase","searchRuntimeBase","acceptedSetPath"]){
+      qs("#"+k).value = cfg[k] || "";
+    }
+    const badge = document.querySelector("#cfgBadge");
+    badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+
+    function render(){
+      const c = getConfig();
+      qs("#out").textContent = JSON.stringify(c, null, 2);
+      badge.textContent = c.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+    }
+    render();
+
+    qs("#save").onclick = () => {
+      setConfig({
+        portalApiBase: qs("#portalApiBase").value.trim(),
+        trustRootBase: qs("#trustRootBase").value.trim(),
+        searchRuntimeBase: qs("#searchRuntimeBase").value.trim(),
+        acceptedSetPath: qs("#acceptedSetPath").value.trim(),
+      });
+      render();
+    };
+    qs("#reset").onclick = () => { localStorage.removeItem("onetoo_portal_cfg"); location.reload(); };
+  </script>
+
+  <div id="footer"></div>
+</body>
+</html>

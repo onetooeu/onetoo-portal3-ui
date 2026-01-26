@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Federation — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Federated discovery (read-only)</h1>
+      <p class="small">
+        Query multiple trust roots / search runtimes and merge results deterministically.
+        This page is <b>non-authoritative</b>: it only aggregates publicly available endpoints.
+      </p>
+
+      <div class="field">
+        <label>Query</label>
+        <input id="q" placeholder="e.g. hgpedu, tfws, portal" />
+      </div>
+
+      <div class="grid two">
+        <div class="field">
+          <label>Limit per source</label>
+          <input id="limit" type="number" value="10" min="1" max="50"/>
+        </div>
+        <div class="field">
+          <label>Merge mode</label>
+          <select id="merge">
+            <option value="score_then_source">score → source</option>
+            <option value="source_then_score">source → score</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Sources (one per line)</label>
+        <textarea id="sources" rows="6" class="mono"></textarea>
+        <div class="small muted">Format: <code>search=https://search.onetoo.eu</code> or <code>trust=https://www.onetoo.eu</code></div>
+      </div>
+
+      <div class="row">
+        <button class="btn ok" id="run">Run federated search</button>
+        <button class="btn" id="reset">Reset sources</button>
+      </div>
+
+      <pre id="out" class="mono small"></pre>
+    </div>
+
+    <div class="card">
+      <h2>Unified results</h2>
+      <div id="results" class="list"></div>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+
+  <script type="module">
+    import { getConfig, mountHeader, mountFooter, escapeHtml, norm, fetchJson } from "./assets/app.js";
+    const cfg = getConfig(); mountHeader(cfg); mountFooter(cfg);
+
+    const els = {
+      q: document.getElementById("q"),
+      limit: document.getElementById("limit"),
+      merge: document.getElementById("merge"),
+      sources: document.getElementById("sources"),
+      run: document.getElementById("run"),
+      reset: document.getElementById("reset"),
+      out: document.getElementById("out"),
+      results: document.getElementById("results"),
+    };
+
+    function defaultSources(){
+      return [
+        "search=https://search.onetoo.eu",
+        "trust=https://www.onetoo.eu"
+      ].join("\n");
+    }
+    els.sources.value = defaultSources();
+
+    function parseSources(){
+      const lines = els.sources.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+      const out = { search: [], trust: [] };
+      for (const ln of lines){
+        const m = ln.split("=");
+        if (m.length<2) continue;
+        const k = m[0].trim();
+        const v = m.slice(1).join("=").trim().replace(/\/+$/,"");
+        if (k==="search") out.search.push(v);
+        if (k==="trust") out.trust.push(v);
+      }
+      if (!out.search.length) out.search.push(cfg.searchRuntimeBase);
+      if (!out.trust.length) out.trust.push(cfg.trustRootBase);
+      return out;
+    }
+
+    function renderCards(items){
+      els.results.innerHTML = items.map((r)=>`
+        <div class="item">
+          <div class="row between">
+            <div>
+              <div class="title">${escapeHtml(r.title||"(untitled)")}</div>
+              <div class="small muted">${escapeHtml(r.url||"")}</div>
+            </div>
+            <div class="badge ok">score ${r.score ?? "?"}</div>
+          </div>
+          <div class="small">${escapeHtml(r.description||"")}</div>
+          <div class="small muted">source: ${escapeHtml(r._source||"")}</div>
+        </div>
+      `).join("") || "<div class='small muted'>No results.</div>";
+    }
+
+    async function run(){
+      els.out.textContent = "Loading…";
+      const q = (els.q.value||"").trim();
+      const limit = Math.max(1, Math.min(50, parseInt(els.limit.value||"10",10)));
+      const s = parseSources();
+
+      const perSource = [];
+      for (const base of s.search){
+        const url = `${base.replace(/\/+$/,"")}/search/v1?q=${encodeURIComponent(q)}&limit=${limit}`;
+        const r = await fetchJson(url);
+        perSource.push({ base, ok: r.ok, status: r.status, data: r.data });
+      }
+
+      // normalize + merge
+      const merged = [];
+      for (const ps of perSource){
+        const arr = ps?.data?.results || [];
+        for (const it of arr){
+          merged.push({ ...it, _source: ps.base });
+        }
+      }
+
+      const mode = els.merge.value;
+      const cmp = (a,b)=>{
+        if (mode==="source_then_score"){
+          const s = String(a._source).localeCompare(String(b._source));
+          if (s!==0) return s;
+          return (b.score||0)-(a.score||0);
+        }
+        // score_then_source
+        const d = (b.score||0)-(a.score||0);
+        if (d!==0) return d;
+        return String(a._source).localeCompare(String(b._source));
+      };
+      merged.sort(cmp);
+
+      els.out.textContent = JSON.stringify({ query:q, sources:s, perSourceMeta: perSource.map(x=>({base:x.base, ok:x.ok, status:x.status})) }, null, 2);
+      renderCards(merged.slice(0, limit*s.search.length));
+    }
+
+    els.run.onclick = run;
+    els.reset.onclick = ()=>{ els.sources.value = defaultSources(); };
+  </script>
+</body>
+</html>

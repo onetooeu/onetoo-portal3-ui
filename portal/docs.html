@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Docs — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Documentation hub</h1>
+      <p class="small">This repo is designed to be shipped with audit/vision/spec documents and architecture diagrams.</p>
+
+      <h3>Included (placeholders)</h3>
+      <ul class="small">
+        <li><span class="kbd">docs/FINAL_AUDIT_VISION_EXPANSION_REPORT.md</span></li>
+        <li><span class="kbd">docs/MAXIMALIST_BACKLOG_SPRINTS.md</span></li>
+        <li><span class="kbd">docs/diagrams/</span> (PDF + SVG)</li>
+      </ul>
+
+      <h3>External live endpoints</h3>
+      <ul class="small">
+        <li><a href="https://search.onetoo.eu/openapi.json" target="_blank" rel="noreferrer">search runtime openapi.json</a></li>
+        <li><a href="https://search.onetoo.eu/search/v1?q=hgp&limit=5" target="_blank" rel="noreferrer">search runtime sample query</a></li>
+        <li><a href="https://www.onetoo.eu/.well-known/" target="_blank" rel="noreferrer">trust root .well-known</a></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>How to use</h2>
+      <ol class="small">
+        <li>Configure portal API base on Home page (recommended).</li>
+        <li>Browse Registry → open Entity detail.</li>
+        <li>Use Status for endpoint checks.</li>
+      </ol>
+      <hr/>
+      <h3>Note</h3>
+      <p class="small">Portal remains read-only by design. Any submission flow belongs outside the portal (separate onboarding kit / governance process).</p>
+    </div>
+  </div>
+
+  <script type="module">
+    async function loadHeader(){ const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text(); }
+    await loadHeader();
+  </script>
+
+  <div id="footer"></div>
+</body>
+</html>

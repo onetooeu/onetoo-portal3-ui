@@ -1,0 +1,47 @@
+:root { --bg:#0b0f14; --fg:#e6edf3; --mut:#9aa4af; --card:#101720; --br:#213042; --acc:#7aa2ff; --ok:#53d18f; --warn:#ffd166; --bad:#ff5c7a; }
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:var(--bg);color:var(--fg)}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+header{padding:18px 20px;border-bottom:1px solid var(--br);background:rgba(16,23,32,.75);backdrop-filter: blur(10px);position:sticky;top:0;z-index:10}
+nav{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.brand{font-weight:800;letter-spacing:.3px}
+.container{max-width:1180px;margin:0 auto;padding:18px 20px}
+.grid{display:grid;gap:14px}
+@media (min-width: 920px){ .grid.two{grid-template-columns: 1.2fr .8fr} }
+.card{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:14px}
+h1,h2,h3{margin:0 0 10px 0}
+p{color:var(--mut);line-height:1.5;margin:10px 0}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#0a111a;border:1px solid var(--br);padding:2px 6px;border-radius:8px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button,textarea{background:#0a111a;border:1px solid var(--br);color:var(--fg);border-radius:12px;padding:10px 12px;font-size:14px}
+textarea{width:100%;min-height:140px}
+button{cursor:pointer}
+button.primary{border-color:transparent;background:linear-gradient(135deg,#3d5afe,#7aa2ff);color:#05101c;font-weight:700}
+button.ghost{background:transparent}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--br);color:var(--mut);font-size:12px}
+.badge.ok{color:var(--ok);border-color:rgba(83,209,143,.35)}
+.badge.warn{color:var(--warn);border-color:rgba(255,209,102,.35)}
+.badge.bad{color:var(--bad);border-color:rgba(255,92,122,.35)}
+.table{width:100%;border-collapse:separate;border-spacing:0 10px}
+.table th{color:var(--mut);font-weight:600;text-align:left;font-size:12px}
+.table td{padding:12px}
+.table tr{background:#0a111a;border:1px solid var(--br)}
+.table tr td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
+.table tr td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+.small{font-size:12px;color:var(--mut)}
+hr{border:0;border-top:1px solid var(--br);margin:14px 0}
+
+/* ===== Omega additions ===== */
+.topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.08);position:sticky;top:0;background:#fff;z-index:5}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{font-weight:800;letter-spacing:.5px}
+.nav{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.nav a{color:inherit;text-decoration:none;padding:6px 10px;border-radius:10px}
+.nav a:hover{background:rgba(0,0,0,.05)}
+.footer{padding:24px 16px;border-top:1px solid rgba(0,0,0,.08);margin-top:24px}
+.checklist{list-style:none;padding-left:0;margin:0}
+.checklist li{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed rgba(0,0,0,.12)}
+.checklist li.ok{opacity:1}
+.checklist li.bad{opacity:1}

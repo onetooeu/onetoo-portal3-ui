@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Registry — ONETOO Portal</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+  <div id="header"></div>
+  <div class="container grid two">
+    <div class="card">
+      <h1>Registry browser (read-only)</h1>
+      <p class="small">Data source: accepted-set. Deterministic filters and exports. No writes.</p>
+
+      <div class="grid">
+        <div class="row">
+          <input id="q" placeholder="Filter (substring)"/>
+          <select id="kind"></select>
+          <select id="topic"></select>
+          <select id="lang"></select>
+          <select id="sort">
+            <option value="title">Sort: title</option>
+            <option value="timestamp">Sort: timestamp</option>
+            <option value="kind">Sort: kind</option>
+          </select>
+          <button id="reload">Reload</button>
+        </div>
+
+        <div class="row">
+          <button class="primary" id="exportJson">Export JSON</button>
+          <button id="exportCsv">Export CSV</button>
+          <span class="badge" id="meta"></span>
+        </div>
+
+        <div id="err" class="badge bad" style="display:none"></div>
+
+        <table class="table" id="tbl">
+          <thead>
+            <tr><th>Title</th><th>Kind</th><th>Topics</th><th>Languages</th><th>Timestamp</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="small mono" id="count"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Data quality & schema checks</h2>
+      <p class="small">This UI performs lightweight validation and shows problems clearly.</p>
+      <pre class="mono small" id="checks"></pre>
+      <hr/>
+      <h3>Tips</h3>
+      <ul class="small">
+        <li>Entity IDs are stable per (kind,url,title) hash.</li>
+        <li>Use <span class="kbd">entity.html?id=...</span> for deep links.</li>
+        <li>Prefer Portal API mode to avoid CORS issues.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    import {getConfig, getAccepted, stableId, norm, fmtDate, escapeHtml, mountHeader, mountFooter} from "./assets/app.js";
+    async function loadHeader(){ const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text(); }
+    await loadHeader();
+
+    const cfg = getConfig();
+    mountHeader(cfg);
+    mountFooter(cfg);
+    const badge = document.querySelector("#cfgBadge");
+    badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+
+    const els = {
+      q: document.querySelector("#q"),
+      kind: document.querySelector("#kind"),
+      topic: document.querySelector("#topic"),
+      lang: document.querySelector("#lang"),
+      sort: document.querySelector("#sort"),
+      reload: document.querySelector("#reload"),
+      body: document.querySelector("#tbl tbody"),
+      meta: document.querySelector("#meta"),
+      err: document.querySelector("#err"),
+      count: document.querySelector("#count"),
+      checks: document.querySelector("#checks"),
+      exportJson: document.querySelector("#exportJson"),
+      exportCsv: document.querySelector("#exportCsv"),
+    };
+
+    let RAW = null;
+    let ITEMS = [];
+
+    function opt(el, values){
+      el.innerHTML = "";
+      const o0 = document.createElement("option"); o0.value=""; o0.textContent="All"; el.appendChild(o0);
+      for (const v of values){
+        const o = document.createElement("option"); o.value=v; o.textContent=v; el.appendChild(o);
+      }
+    }
+
+    function validateShape(acc){
+      const problems = [];
+      if (!acc || typeof acc !== "object") problems.push("accepted-set is not an object");
+      if (!Array.isArray(acc?.items)) problems.push("missing or invalid: items[]");
+      if (acc?.schema && typeof acc.schema !== "string") problems.push("schema is not string");
+      if (acc?.version && typeof acc.version !== "string") problems.push("version is not string");
+      const items = Array.isArray(acc?.items)?acc.items:[];
+      let missingUrl=0, missingTitle=0;
+      for (const it of items){
+        if (!it?.url) missingUrl++;
+        if (!it?.title) missingTitle++;
+      }
+      problems.push(`items: ${items.length}, missing title: ${missingTitle}, missing url: ${missingUrl}`);
+      return problems;
+    }
+
+    function filtered(){
+      const q = norm(els.q.value);
+      const k = els.kind.value;
+      const t = els.topic.value;
+      const l = els.lang.value;
+      let arr = ITEMS.slice();
+      if (q){
+        arr = arr.filter(it => (norm(it.title)+" "+norm(it.description)+" "+norm(it.url)+" "+norm((it.topics||[]).join(" "))).includes(q));
+      }
+      if (k) arr = arr.filter(it => String(it.kind||"")===k);
+      if (t) arr = arr.filter(it => Array.isArray(it.topics) && it.topics.includes(t));
+      if (l) arr = arr.filter(it => Array.isArray(it.languages) && it.languages.includes(l));
+
+      const s = els.sort.value;
+      arr.sort((a,b)=>{
+        if (s==="timestamp") return String(b.timestamp||"").localeCompare(String(a.timestamp||""));
+        if (s==="kind") return String(a.kind||"").localeCompare(String(b.kind||""));
+        return String(a.title||"").localeCompare(String(b.title||""));
+      });
+      return arr;
+    }
+
+    function render(){
+      const arr = filtered();
+      els.body.innerHTML = "";
+      for (const it of arr){
+        const tr = document.createElement("tr");
+        const id = stableId(it);
+        tr.innerHTML = `
+          <td><a href="./entity.html?id=${encodeURIComponent(id)}">${escapeHtml(it.title||"(untitled)")}</a><div class="small mono">${escapeHtml(it.url||"")}</div></td>
+          <td>${escapeHtml(it.kind||"")}</td>
+          <td class="small">${escapeHtml((it.topics||[]).slice(0,6).join(", "))}</td>
+          <td class="small">${escapeHtml((it.languages||[]).join(", "))}</td>
+          <td class="small mono">${escapeHtml(fmtDate(it.timestamp||""))}</td>
+        `;
+        els.body.appendChild(tr);
+      }
+      els.count.textContent = `Showing ${arr.length} / ${ITEMS.length}`;
+      const meta = RAW?.data ? (RAW.data.updated_at || RAW.data.note || RAW.data.version || "") : "";
+      els.meta.textContent = `source:${RAW?.source || "?"}  ${meta}`;
+    }
+
+    function download(name, content, type){
+      const blob = new Blob([content], { type: type||"application/octet-stream" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+    }
+
+    els.exportJson.onclick = () => {
+      const arr = filtered();
+      download("onetoo_registry_filtered.json", JSON.stringify({ items: arr }, null, 2)+"\n", "application/json");
+    };
+    els.exportCsv.onclick = () => {
+      const arr = filtered();
+      const cols = ["id","kind","title","url","timestamp","topics","languages","repo","wellKnown"];
+      const lines = [cols.join(",")];
+      for (const it of arr){
+        const row = [
+          stableId(it),
+          it.kind||"",
+          (it.title||"").replace(/"/g,'""'),
+          it.url||"",
+          it.timestamp||"",
+          (it.topics||[]).join("|"),
+          (it.languages||[]).join("|"),
+          it.repo||"",
+          it.wellKnown||"",
+        ].map(v => `"${String(v)}"`);
+        lines.push(row.join(","));
+      }
+      download("onetoo_registry_filtered.csv", lines.join("\n")+"\n", "text/csv");
+    };
+
+    async function load(){
+      els.err.style.display="none";
+      els.checks.textContent = "Loading accepted-set...";
+      RAW = await getAccepted(cfg);
+      if (!RAW.ok){
+        els.err.style.display="inline-flex";
+        els.err.textContent = `Fetch failed (${RAW.source}) HTTP ${RAW.status}.`;
+        ITEMS = [];
+        els.checks.textContent = (RAW.text||"").slice(0,800);
+        render();
+        return;
+      }
+      const acc = RAW.data;
+      ITEMS = Array.isArray(acc?.items) ? acc.items : [];
+      const kinds = [...new Set(ITEMS.map(it=>String(it.kind||"")).filter(Boolean))].sort();
+      const topics = [...new Set(ITEMS.flatMap(it=>Array.isArray(it.topics)?it.topics:[]))].sort();
+      const langs = [...new Set(ITEMS.flatMap(it=>Array.isArray(it.languages)?it.languages:[]))].sort();
+      opt(els.kind, kinds);
+      opt(els.topic, topics);
+      opt(els.lang, langs);
+
+      els.checks.textContent = validateShape(acc).join("\n");
+      render();
+    }
+
+    ["input","change"].forEach(ev=>{
+      els.q.addEventListener(ev, render);
+      els.kind.addEventListener(ev, render);
+      els.topic.addEventListener(ev, render);
+      els.lang.addEventListener(ev, render);
+      els.sort.addEventListener(ev, render);
+    });
+    els.reload.onclick = load;
+
+    await load();
+  </script>
+
+  <div id="footer"></div>
+</body>
+</html>

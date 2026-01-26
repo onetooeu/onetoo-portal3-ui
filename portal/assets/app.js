@@ -293,7 +293,7 @@ function wireHandshakeUI() {
 
   btn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    out.textContent = "Running handshakeĂ˘â‚¬Â¦";
+    out.textContent = "Running handshakeÄ‚ËĂ˘â€šÂ¬Ă‚Â¦";
     try {
       const res = await federationHandshakeSnapshot();
       out.textContent = JSON.stringify(res, null, 2);
@@ -315,3 +315,86 @@ if (document.readyState === "loading") {
   wireHandshakeUI();
 }
 /* --- end handshake --- */
+
+
+/* --- Artifacts UI (localStorage) --- */
+function loadArtifactsIndex() {
+  try { return JSON.parse(localStorage.getItem("onetoo_portal_artifacts") || "[]"); } catch { return []; }
+}
+function getArtifactPayload(key) {
+  try { return localStorage.getItem("artifact:" + key); } catch { return null; }
+}
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+function wireArtifactsUI() {
+  const listEl = document.getElementById("artifactsList");
+  const viewEl = document.getElementById("artifactView");
+  const btnR = document.getElementById("btnArtifactsRefresh");
+  const btnC = document.getElementById("btnArtifactsClear");
+  const btnD = document.getElementById("btnArtifactDownload");
+  if (!listEl || !viewEl || !btnR) return;
+
+  let selectedKey = null;
+
+  function render() {
+    const items = loadArtifactsIndex();
+    listEl.innerHTML = "";
+    if (!items.length) {
+      listEl.innerHTML = `<li class="muted">No local artifacts yet.</li>`;
+      viewEl.textContent = "";
+      if (btnD) btnD.disabled = true;
+      return;
+    }
+
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.className = "item";
+      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} · ${it.bytes} bytes</div></div>`;
+      li.style.cursor = "pointer";
+      li.addEventListener("click", () => {
+        selectedKey = it.key;
+        const payload = getArtifactPayload(selectedKey) || "";
+        viewEl.textContent = payload || "(empty)";
+        if (btnD) btnD.disabled = !payload;
+      });
+      listEl.appendChild(li);
+    }
+  }
+
+  btnR.addEventListener("click", (e) => { e.preventDefault(); render(); });
+
+  if (btnC) btnC.addEventListener("click", (e) => {
+    e.preventDefault();
+    const items = loadArtifactsIndex();
+    for (const it of items) localStorage.removeItem("artifact:" + it.key);
+    localStorage.removeItem("onetoo_portal_artifacts");
+    selectedKey = null;
+    render();
+  });
+
+  if (btnD) btnD.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!selectedKey) return;
+    const payload = getArtifactPayload(selectedKey);
+    if (!payload) return;
+    const safe = selectedKey.replace(/[^a-zA-Z0-9:_-]+/g, "_");
+    downloadText(safe + ".json", payload);
+  });
+
+  render();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", wireArtifactsUI);
+} else {
+  wireArtifactsUI();
+}
+/* --- end artifacts --- */

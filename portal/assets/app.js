@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ONETOO Portal Ultra Edge - client
  * - prefers Portal Worker API when configured
  * - falls back to direct sources if needed
@@ -178,6 +178,7 @@ export function mountHeader(cfg){
     ["Federation","./federation.html"],
     ["Audit","./audit.html"],
     ["Artifacts","./artifacts.html"],
+    ["AMS ✨","./ams.html"],
     ["Status","./status.html"],
     ["Docs","./docs.html"],
   ];
@@ -293,7 +294,7 @@ function wireHandshakeUI() {
 
   btn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    out.textContent = "Running handshakeÄ‚â€žĂ˘â‚¬ĹˇÄ‚â€ąĂ‚ÂĂ„â€šĂ‹ÂÄ‚ËĂ˘â€šÂ¬ÄąË‡Ä‚â€šĂ‚Â¬Ă„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â¦";
+    out.textContent = "Running handshakeĂ„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬Ä…Ä‚â€šĂ‚ÂÄ‚â€žĂ˘â‚¬ĹˇÄ‚â€ąĂ‚ÂĂ„â€šĂ‹ÂÄ‚ËĂ˘â‚¬ĹˇĂ‚Â¬Ă„Ä…Ă‹â€ˇĂ„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â¬Ä‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â¦";
     try {
       const res = await federationHandshakeSnapshot();
       out.textContent = JSON.stringify(res, null, 2);
@@ -348,7 +349,7 @@ function wireArtifactsUI() {
     for (const it of items) {
       const li = document.createElement("li");
       li.className = "item";
-      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} Ă‚Â· ${it.bytes} bytes</div></div>`;
+      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} Ä‚â€šĂ‚Â· ${it.bytes} bytes</div></div>`;
       li.style.cursor = "pointer";
       li.addEventListener("click", () => {
         selectedKey = it.key;
@@ -389,3 +390,4 @@ if (document.readyState === "loading") {
   wireArtifactsUI();
 }
 /* --- end artifacts --- */
+

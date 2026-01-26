@@ -1,0 +1,20 @@
+﻿{
+  "version": "ai-ams-0.2",
+  "name": "ONETOO AMS (Agent Mailbox System)",
+  "ui": {
+    "base": "/portal/ams.html",
+    "modes": ["offline-vault", "demo-feed"],
+    "notes": "Read-only portal UI. Interactive actions are local-only unless a future gateway is enabled."
+  },
+  "feeds": [
+    { "name": "demo", "format": "jsonl", "url": "/portal/data/ams/demo-log.jsonl" }
+  ],
+  "gateway": {
+    "enabled": false,
+    "endpoints": []
+  },
+  "security": {
+    "render": "prompt-firewall",
+    "auto_execute": false
+  }
+}

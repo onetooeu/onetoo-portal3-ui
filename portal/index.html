@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ONETOO Portal â€” Mozart Maximalist</title>
+  <title>ONETOO Portal Ă˘â‚¬â€ť Mozart Maximalist</title>
   <link rel="stylesheet" href="./assets/style.css"/>
 </head>
 <body>
@@ -94,6 +94,29 @@ if (badge) {
     qs("#reset").onclick = () => { localStorage.removeItem("onetoo_portal_cfg"); location.reload(); };
   </script>
 
-  <div id="footer"></div>
+  <section class="card">
+  <div class="row between">
+    <div>
+      <h2 style="margin:0;">AMS ✨ — AI Signal Station</h2>
+      <div class="small muted">Inbox/Outbox • causal threads • proofs/policy • quorum rooms • orchestra map</div>
+    </div>
+    <span class="badge ok">experimental</span>
+  </div>
+  <p class="small" style="margin-top:.6rem;">
+    Not an email client. AMS is an <b>AI-first envelope station</b> for AI ↔ AI, AI ↔ human, and system receipts —
+    offline-first, deterministic, audit-friendly. Built for TFWS trust fabric.
+  </p>
+  <div class="row">
+    <a class="btn ok" href="./ams.html">Open AMS ✨</a>
+    <a class="btn" href="./room.html">Room</a>
+    <a class="btn" href="./notary.html">Notary</a>
+    <a class="btn" href="./artifacts.html">Artifacts</a>
+  </div>
+  <p class="small muted" style="margin-top:.6rem;">
+    Tip: run via http (local server / Pages). Opening via file:// can block module scripts.
+  </p>
+</section>
+<div id="footer"></div>
 </body>
 </html>
+

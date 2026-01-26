@@ -15,3 +15,6 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /ams      /portal/ams.html     308
 /ams/     /portal/ams.html     308
 /ams.html /portal/ams.html     308
+
+/portal/DEPLOY_MARKER.txt /DEPLOY_MARKER.txt 308
+/portal/DEPLOY_MARKER.txt/ /DEPLOY_MARKER.txt 308

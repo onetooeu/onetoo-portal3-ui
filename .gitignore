@@ -6,3 +6,6 @@ Thumbs.db
 *.swp
 *.swo
 .portal-cache/
+
+# local backups
+portal/assets/mozart/config.js.bak

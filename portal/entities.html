@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Registry — ONETOO Portal</title>
+  <title>Registry â€” ONETOO Portal</title>
   <link rel="stylesheet" href="./assets/style.css"/>
 </head>
 <body>
@@ -68,7 +68,7 @@
     mountHeader(cfg);
     mountFooter(cfg);
     const badge = document.querySelector("#cfgBadge");
-    badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+if (badge) badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
 
     const els = {
       q: document.querySelector("#q"),

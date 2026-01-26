@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Status — ONETOO Portal</title>
+  <title>Status â€” ONETOO Portal</title>
   <link rel="stylesheet" href="./assets/style.css"/>
 </head>
 <body>
@@ -41,7 +41,7 @@
     const cfg = getConfig();
     mountHeader(cfg);
     mountFooter(cfg);
-    document.querySelector("#cfgBadge").textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
+    const badge = document.querySelector("#cfgBadge"); if (badge) badge.textContent = cfg.portalApiBase ? "cfg:portal-api" : "cfg:direct";
     document.querySelector("#cfg").textContent = JSON.stringify(cfg, null, 2);
     document.querySelector("#mode").textContent = cfg.portalApiBase ? "mode: portal-api" : "mode: direct";
 

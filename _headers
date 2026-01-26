@@ -1,4 +1,7 @@
 /*
+
+/.well-known/ams-demo-log.ndjson
+  Content-Type: application/x-ndjson; charset=utf-8
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
@@ -12,5 +15,13 @@
 /.well-known/*.jsonl
   Content-Type: application/x-ndjson; charset=utf-8
 
+
+/.well-known/*.ndjson
+  Content-Type: application/x-ndjson; charset=utf-8
+
 /portal/data/**/*.jsonl
   Content-Type: application/x-ndjson; charset=utf-8
+
+/portal/data/**/*.ndjson
+  Content-Type: application/x-ndjson; charset=utf-8
+

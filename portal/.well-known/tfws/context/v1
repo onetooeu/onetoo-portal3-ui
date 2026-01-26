@@ -1,0 +1,10 @@
+{
+  "@context": {
+    "type": "@type",
+    "issuer": "https://schema.org/Organization",
+    "createdAt": "https://schema.org/dateCreated",
+    "subject": "https://schema.org/about",
+    "hash": "https://schema.org/sha256",
+    "meta": "https://schema.org/metadata"
+  }
+}

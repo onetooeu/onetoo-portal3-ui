@@ -1,0 +1,9 @@
+# ONETOO Portal (Mozart Maximalist)
+# Machine-readable entry points for AI agents.
+# This is a lightweight companion; canonical trust signals live in /.well-known/index.json and sha256.json.
+
+User-agent: *
+Allow: /
+
+Sitemap: /portal/sitemap.xml
+AI-Trust-Index: /.well-known/index.json

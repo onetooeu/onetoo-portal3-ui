@@ -1,0 +1,13 @@
+{
+  "name": "ONETOO AI Trust Hub (Portal bundle)",
+  "version": "2026-01-26",
+  "entrypoints": {
+    "well_known_index": "/.well-known/index.json",
+    "llms": "/.well-known/llms.txt",
+    "sha256_manifest": "/.well-known/sha256.json"
+  },
+  "tfws": {
+    "standard": "Trust-First Web Standard",
+    "notes": "Experimental portal bundle aligned with onetoo.eu trust-first principles."
+  }
+}

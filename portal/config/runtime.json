@@ -1,0 +1,12 @@
+{
+  "trust_root": "https://www.onetoo.eu",
+  "search_runtime": "https://search.onetoo.eu",
+  "portal_ui": "https://portal.onetoo.eu",
+  "agents_service": "https://agents.onetoo.eu",
+
+  "discovery": {
+    "trust_root_index": "https://www.onetoo.eu/.well-known/index.json",
+    "search_openapi": "https://search.onetoo.eu/openapi.json",
+    "agents_index": "https://agents.onetoo.eu/.well-known/index.json"
+  }
+}

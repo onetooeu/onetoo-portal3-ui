@@ -1,11 +1,10 @@
-node_modules/
 .wrangler/
-.dev.vars
+node_modules/
 .DS_Store
-Thumbs.db
-*.swp
-*.swo
-.portal-cache/
 
-# local backups
-portal/assets/mozart/config.js.bak
+# local signing artifacts (must never ship)
+agent.key
+agent.pub
+sig.bin
+canonical.txt
+body.json

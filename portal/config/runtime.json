@@ -1,4 +1,4 @@
-{
+﻿{
   "trust_root": "https://www.onetoo.eu",
   "search_runtime": "https://search.onetoo.eu",
   "portal_ui": "https://portal.onetoo.eu",
@@ -6,7 +6,15 @@
 
   "discovery": {
     "trust_root_index": "https://www.onetoo.eu/.well-known/index.json",
+    "trust_root_ai_trust_hub": "https://www.onetoo.eu/.well-known/ai-trust-hub.json",
+    "trust_root_llms": "https://www.onetoo.eu/.well-known/llms.txt",
+    "trust_root_sha256": "https://www.onetoo.eu/.well-known/sha256.json",
+    "trust_root_minisign_pub": "https://www.onetoo.eu/.well-known/minisign.pub",
+
     "search_openapi": "https://search.onetoo.eu/openapi.json",
-    "agents_index": "https://agents.onetoo.eu/.well-known/index.json"
+
+    "agents_index": "https://agents.onetoo.eu/.well-known/index.json",
+    "agents_openapi": "https://agents.onetoo.eu/.well-known/openapi.json",
+    "agents_status": "https://agents.onetoo.eu/.well-known/status.json"
   }
 }

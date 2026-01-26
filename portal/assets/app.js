@@ -293,7 +293,7 @@ function wireHandshakeUI() {
 
   btn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    out.textContent = "Running handshakeÄ‚ËĂ˘â€šÂ¬Ă‚Â¦";
+    out.textContent = "Running handshakeĂ„â€šĂ‹ÂÄ‚ËĂ˘â‚¬ĹˇĂ‚Â¬Ä‚â€šĂ‚Â¦";
     try {
       const res = await federationHandshakeSnapshot();
       out.textContent = JSON.stringify(res, null, 2);
@@ -324,15 +324,6 @@ function loadArtifactsIndex() {
 function getArtifactPayload(key) {
   try { return localStorage.getItem("artifact:" + key); } catch { return null; }
 }
-function downloadText(filename, text) {
-  const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
-}
 
 function wireArtifactsUI() {
   const listEl = document.getElementById("artifactsList");
@@ -357,7 +348,7 @@ function wireArtifactsUI() {
     for (const it of items) {
       const li = document.createElement("li");
       li.className = "item";
-      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} · ${it.bytes} bytes</div></div>`;
+      li.innerHTML = `<div><b>${it.key}</b><div class="muted small">${it.ts} Â· ${it.bytes} bytes</div></div>`;
       li.style.cursor = "pointer";
       li.addEventListener("click", () => {
         selectedKey = it.key;

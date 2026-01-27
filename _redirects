@@ -1,3 +1,17 @@
+# --- Legacy .html entrypoints -> canonical pretty URLs (force clean address bar) ---
+/index.html       /                 301
+/home.html        /                 301
+
+/registry.html    /registry          301
+/search.html      /search            301
+/federation.html  /federation        301
+/audit.html       /audit             301
+/artifacts.html   /artifacts         301
+/room.html        /room              301
+/notary.html      /notary            301
+
+/status.html      /portal/status     301
+/docs.html        /portal/docs       301
 # --- Portal nav aliases (pretty URLs) ---
 /home        /           301
 /registry    /portal/entities.html   301

@@ -8,7 +8,7 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /.well-known/*        /.well-known/:splat        200
 
 # --- Friendly short aliases ---
-/ams     /portal/ams.html     308
+/ams     /ams.html     308
 /docs    /portal/docs.html    308
 /status  /portal/status.html  308
 /audit   /portal/audit.html   308

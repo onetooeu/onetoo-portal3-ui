@@ -60,7 +60,7 @@
   <script type="module">
     import {getConfig, setConfig, qs, mountHeader, mountFooter} from "./assets/app.js";
     async function loadHeader(){
-      const r = await fetch("./_partials/header.html"); document.querySelector("#header").innerHTML = await r.text();
+      const r = await fetch("/_partials/header"); document.querySelector("#header").innerHTML = await r.text();
     }
     await loadHeader();
     const cfg = getConfig();

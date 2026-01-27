@@ -1,15 +1,22 @@
-/audit      /portal/audit.html   308
-/audit/     /portal/audit.html   308
-/audit.html /portal/audit.html   308
+# --- HTTPS hygiene ---
+http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 
-/status      /portal/status.html  308
-/status/     /portal/status.html  308
-/status.html /portal/status.html  308
+# --- NEVER rewrite static assets/partials/well-known (must remain real files) ---
+/portal/assets/*      /portal/assets/:splat      200
+/portal/_partials/*   /portal/_partials/:splat   200
+/portal/.well-known/* /portal/.well-known/:splat 200
+/.well-known/*        /.well-known/:splat        200
 
-/docs      /portal/docs.html    308
-/docs/     /portal/docs.html    308
-/docs.html /portal/docs.html    308
+# --- Friendly short aliases ---
+/ams     /portal/ams.html     308
+/docs    /portal/docs.html    308
+/status  /portal/status.html  308
+/audit   /portal/audit.html   308
 
-/ams      /portal/ams.html     308
-/ams/     /portal/ams.html     308
-/ams.html /portal/ams.html     308
+# --- Hard block: do NOT let SPA fallback swallow these prefixes ---
+/portal/assets/*      404
+/portal/_partials/*   404
+
+# --- SPA fallback (last) ---
+/portal             /portal/index.html 200
+/portal/*           /portal/index.html 200

@@ -1,21 +1,42 @@
 ﻿{
-  "version": "ai-ams-0.2",
-  "name": "ONETOO AMS (Agent Mailbox System)",
-  "ui": {
-    "base": "/portal/ams.html",
-    "modes": ["offline-vault", "demo-feed"],
-    "notes": "Read-only portal UI. Interactive actions are local-only unless a future gateway is enabled."
-  },
-  "feeds": [
-    { "name": "demo", "format": "jsonl", "url": "/.well-known/ams-demo-log.jsonl" }
-  ],
-  "gateway": {
-    "enabled": false,
-    "endpoints": []
-  },
-  "security": {
-    "render": "prompt-firewall",
-    "auto_execute": false
-  }
+    "version":  "ai-ams-0.2",
+    "name":  "ONETOO AMS (Agent Mailbox System)",
+    "ui":  {
+               "base":  "/ams.html",
+               "modes":  [
+                             "offline-vault",
+                             "demo-feed"
+                         ],
+               "notes":  "Read-only portal UI. Interactive actions are local-only unless a future gateway is enabled.",
+               "mirror":  "/portal/ams.html",
+               "assets":  {
+                              "css":  "/assets/ams.css",
+                              "js":  "/assets/ams.js"
+                          }
+           },
+    "feeds":  [
+                  {
+                      "name":  "demo",
+                      "format":  "jsonl",
+                      "url":  "/.well-known/ams-demo-log.jsonl"
+                  }
+              ],
+    "gateway":  {
+                    "enabled":  false,
+                    "endpoints":  [
+
+                                  ]
+                },
+    "security":  {
+                     "render":  "prompt-firewall",
+                     "auto_execute":  false
+                 },
+    "spec":  {
+                 "gateway":  "/.well-known/ams-gateway-spec.json"
+             },
+    "pointers":  {
+                     "demo_ndjson":  "/.well-known/ams-demo-log.ndjson",
+                     "gateway_spec":  "/.well-known/ams-gateway-spec.json"
+                 }
 }
 

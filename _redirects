@@ -1,3 +1,15 @@
+# --- Portal legacy .html -> portal pretty (avoid 308 hops) ---
+/portal/entities.html    /portal/entities    301
+/portal/search.html      /portal/search      301
+/portal/federation.html  /portal/federation  301
+/portal/audit.html       /portal/audit       301
+/portal/artifacts.html   /portal/artifacts   301
+/portal/status.html      /portal/status      301
+/portal/docs.html        /portal/docs        301
+/portal/notary.html      /portal/notary      301
+/portal/merchant.html    /portal/merchant    301
+/portal/room.html        /portal/room        301
+/portal/explain.html     /portal/explain     301
 # --- Legacy .html entrypoints -> canonical pretty URLs (force clean address bar) ---
 /index.html       /                 301
 /home.html        /                 301

@@ -16,8 +16,6 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 # --- Hard block: do NOT let SPA fallback swallow these prefixes ---
 /portal/assets/*      404
 /portal/_partials/*   404
-/portal/.well-known/* 404
-/.well-known/*        404
 
 # --- SPA fallback (last) ---
 /portal             /portal/index.html 200

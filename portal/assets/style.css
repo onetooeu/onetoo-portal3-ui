@@ -45,3 +45,11 @@ hr{border:0;border-top:1px solid var(--br);margin:14px 0}
 .checklist li{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed rgba(0,0,0,.12)}
 .checklist li.ok{opacity:1}
 .checklist li.bad{opacity:1}
+
+/* --- header nav hardening (fix clipped/ghost links) --- */
+#header{height:auto !important; overflow:visible !important;}
+header, header *{pointer-events:auto;}
+header .container{padding:0 !important;}
+header nav{gap:10px !important; flex-wrap:wrap !important;}
+header a{display:inline-block; padding:6px 10px; border-radius:10px; text-decoration:none;}
+header a:hover{background:rgba(255,255,255,.08);}

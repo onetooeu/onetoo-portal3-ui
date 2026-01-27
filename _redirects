@@ -1,3 +1,5 @@
+/status.html   /status   301
+/docs.html     /docs     301
 # --- Portal legacy .html -> portal pretty (avoid 308 hops) ---
 /portal/entities.html    /portal/entities    301
 /portal/search.html      /portal/search      301

@@ -22,3 +22,14 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /portal/*           /portal/index.html 200
 
 /portal3  /portal3.html  200
+
+# --- Portal nav aliases (pretty URLs) ---
+/home        /           301
+/registry    /portal/entities.html   301
+/search      /portal/search.html     301
+/federation  /portal/federation.html 301
+/audit       /portal/audit.html      301
+/artifacts   /portal/artifacts.html  301
+/room        /portal/room.html       301
+/notary      /portal/notary.html     301
+/ams         /ams.html               301

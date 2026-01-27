@@ -1,3 +1,13 @@
+# --- Portal nav aliases (pretty URLs) ---
+/home        /           301
+/registry    /portal/entities.html   301
+/search      /portal/search.html     301
+/federation  /portal/federation.html 301
+/audit       /portal/audit.html      301
+/artifacts   /portal/artifacts.html  301
+/room        /portal/room.html       301
+/notary      /portal/notary.html     301
+/ams         /ams.html               301
 # --- HTTPS hygiene ---
 http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 
@@ -8,10 +18,8 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /.well-known/*        /.well-known/:splat        200
 
 # --- Friendly short aliases ---
-/ams     /ams.html     308
 /docs    /portal/docs.html    308
 /status  /portal/status.html  308
-/audit   /portal/audit.html   308
 
 # --- Hard block: do NOT let SPA fallback swallow these prefixes ---
 /portal/assets/*      404
@@ -28,8 +36,6 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /registry    /portal/entities.html   301
 /search      /portal/search.html     301
 /federation  /portal/federation.html 301
-/audit       /portal/audit.html      301
 /artifacts   /portal/artifacts.html  301
 /room        /portal/room.html       301
 /notary      /portal/notary.html     301
-/ams         /ams.html               301

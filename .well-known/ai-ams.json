@@ -1,42 +1,53 @@
-﻿{
-    "version":  "ai-ams-0.2",
-    "name":  "ONETOO AMS (Agent Mailbox System)",
-    "ui":  {
-               "base":  "/ams.html",
-               "modes":  [
-                             "offline-vault",
-                             "demo-feed"
-                         ],
-               "notes":  "Read-only portal UI. Interactive actions are local-only unless a future gateway is enabled.",
-               "mirror":  "/portal/ams.html",
-               "assets":  {
-                              "css":  "/assets/ams.css",
-                              "js":  "/assets/ams.js"
-                          }
-           },
-    "feeds":  [
-                  {
-                      "name":  "demo",
-                      "format":  "jsonl",
-                      "url":  "/.well-known/ams-demo-log.jsonl"
-                  }
-              ],
-    "gateway":  {
-                    "enabled":  false,
-                    "endpoints":  [
-
-                                  ]
-                },
-    "security":  {
-                     "render":  "prompt-firewall",
-                     "auto_execute":  false
-                 },
-    "spec":  {
-                 "gateway":  "/.well-known/ams-gateway-spec.json"
-             },
-    "pointers":  {
-                     "demo_ndjson":  "/.well-known/ams-demo-log.ndjson",
-                     "gateway_spec":  "/.well-known/ams-gateway-spec.json"
-                 }
+{
+  "version": "ai-ams-0.2",
+  "name": "ONETOO AMS (Agent Mailbox System)",
+  "ui": {
+    "base": "/ams.html",
+    "modes": [
+      "offline-vault",
+      "demo-feed",
+      "online-mode"
+    ],
+    "notes": "Offline-first portal UI with optional ONLINE MODE gateway (read public, write requires token).",
+    "mirror": "/portal/ams.html",
+    "assets": {
+      "css": "/assets/ams.css",
+      "js": "/assets/ams.js"
+    }
+  },
+  "feeds": [
+    {
+      "name": "demo",
+      "format": "jsonl",
+      "url": "/.well-known/ams-demo-log.jsonl"
+    }
+  ],
+  "gateway": {
+    "enabled": true,
+    "base": "/ams/v1",
+    "write_requires_token": true,
+    "endpoints": [
+      "/ams/v1/health",
+      "/ams/v1/envelopes",
+      "/ams/v1/threads",
+      "/ams/v1/sync",
+      "/ams/v1/artifacts",
+      "/notary/v1/records",
+      "/room/v1/messages",
+      "/federation/v1/handshake",
+      "/audit/v1/events.ndjson"
+    ]
+  },
+  "security": {
+    "render": "prompt-firewall",
+    "auto_execute": false
+  },
+  "spec": {
+    "gateway": "/.well-known/ams-gateway-spec.json"
+  },
+  "pointers": {
+    "demo_ndjson": "/.well-known/ams-demo-log.ndjson",
+    "gateway_spec": "/.well-known/ams-gateway-spec.json",
+    "policy": "/.well-known/ams-policy.json"
+  }
 }
-

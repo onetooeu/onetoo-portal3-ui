@@ -1,0 +1,56 @@
+{
+  "version": "2026-01-27",
+  "mode": "experimental",
+  "notes": "Deterministic policy scoring for demo portals. This is NOT a security boundary.",
+  "envelope_rules": [
+    {
+      "id": "allow-basic",
+      "when": {
+        "type_in": [
+          "notice",
+          "artifact",
+          "handshake",
+          "room.message",
+          "notary.record",
+          "demo"
+        ]
+      },
+      "score": 10,
+      "tags": [
+        "allow"
+      ]
+    },
+    {
+      "id": "penalize-large-payload",
+      "when": {
+        "payload_bytes_gt": 262144
+      },
+      "score": -25,
+      "tags": [
+        "large"
+      ]
+    },
+    {
+      "id": "unknown-type",
+      "when": {
+        "type_not_in": [
+          "notice",
+          "artifact",
+          "handshake",
+          "room.message",
+          "notary.record",
+          "demo"
+        ]
+      },
+      "score": -10,
+      "tags": [
+        "unknown_type"
+      ]
+    }
+  ],
+  "thresholds": {
+    "accept": 0,
+    "quarantine": -10,
+    "reject": -40
+  }
+}

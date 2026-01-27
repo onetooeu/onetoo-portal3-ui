@@ -1,18 +1,126 @@
 {
-  "version": "ams-gateway-spec-0.1",
-  "name": "ONETOO AMS Gateway (disabled by default)",
-  "status": { "enabled": false, "reason": "No agent service is deployed. UI remains offline-first + read-only." },
-  "security": { "auto_execute": false, "render": "prompt-firewall" },
-  "endpoints": [
-    { "id":"ingest_envelope", "method":"POST", "path":"/ams/v1/envelopes", "returns":"receipt+proof-ref" },
-    { "id":"stream_topic", "method":"GET", "path":"/ams/v1/stream?topic=...&since=...&limit=...", "returns":"application/x-ndjson" },
-    { "id":"stream_room", "method":"GET", "path":"/ams/v1/stream/room?room=...&since=...&limit=...", "returns":"application/x-ndjson" },
-    { "id":"get_proof_bundle", "method":"GET", "path":"/ams/v1/proofs/{proof_id}", "returns":"application/json" },
-    { "id":"quorum_decide", "method":"POST", "path":"/ams/v1/quorum/decide", "returns":"decision-envelope" },
-    { "id":"status", "method":"GET", "path":"/ams/v1/status", "returns":"application/json" }
-  ],
+  "version": "ams-gateway-spec-0.2",
+  "name": "ONETOO AMS Gateway (OMEGA FULL)",
+  "status": "experimental",
+  "security": {
+    "offline_first": true,
+    "write_requires_auth": true,
+    "auth": {
+      "type": "Bearer",
+      "headers": [
+        "Authorization: Bearer <TOKEN>",
+        "x-ams-token: <TOKEN>"
+      ],
+      "env": [
+        "AMS_WRITE_TOKEN",
+        "AMS_ADMIN_TOKEN"
+      ],
+      "notes": "Set tokens in Cloudflare Pages project environment variables."
+    },
+    "cors": {
+      "env": "AMS_CORS_ORIGIN",
+      "default": "*"
+    }
+  },
+  "endpoints": {
+    "health": {
+      "method": "GET",
+      "path": "/ams/v1/health"
+    },
+    "policy": {
+      "method": "GET",
+      "path": "/ams/v1/policy"
+    },
+    "envelopes_list": {
+      "method": "GET",
+      "path": "/ams/v1/envelopes",
+      "query": [
+        "limit",
+        "cursor",
+        "dir",
+        "to",
+        "from",
+        "thread",
+        "status"
+      ]
+    },
+    "envelopes_create": {
+      "method": "POST",
+      "path": "/ams/v1/envelopes",
+      "auth": "write"
+    },
+    "envelopes_get": {
+      "method": "GET",
+      "path": "/ams/v1/envelopes/{id}"
+    },
+    "envelopes_patch": {
+      "method": "PATCH",
+      "path": "/ams/v1/envelopes/{id}",
+      "auth": "write",
+      "notes": "Update status / append metadata."
+    },
+    "threads_list": {
+      "method": "GET",
+      "path": "/ams/v1/threads",
+      "query": [
+        "limit"
+      ]
+    },
+    "sync": {
+      "method": "POST",
+      "path": "/ams/v1/sync",
+      "auth": "write_for_push",
+      "notes": "pull is public; push requires write token."
+    },
+    "artifacts_list": {
+      "method": "GET",
+      "path": "/ams/v1/artifacts",
+      "query": [
+        "limit"
+      ]
+    },
+    "artifacts_create": {
+      "method": "POST",
+      "path": "/ams/v1/artifacts",
+      "auth": "write"
+    },
+    "artifact_get": {
+      "method": "GET",
+      "path": "/ams/v1/artifacts/{key}",
+      "query": [
+        "payload=1"
+      ]
+    },
+    "artifact_put": {
+      "method": "PUT",
+      "path": "/ams/v1/artifacts/{key}",
+      "auth": "write",
+      "notes": "Store raw body as artifact text."
+    },
+    "notary_records": {
+      "method": "GET|POST",
+      "path": "/notary/v1/records",
+      "auth": "write_for_post"
+    },
+    "room_messages": {
+      "method": "GET|POST",
+      "path": "/room/v1/messages?room={room}",
+      "auth": "write_for_post"
+    },
+    "federation_handshake": {
+      "method": "GET|POST",
+      "path": "/federation/v1/handshake",
+      "auth": "write"
+    },
+    "audit_ndjson": {
+      "method": "GET",
+      "path": "/audit/v1/events.ndjson?limit={n}",
+      "auth": "admin_unless_AUDIT_PUBLIC=1"
+    }
+  },
   "notes": [
-    "Contract draft only. No live gateway implied.",
-    "Client UI may load this for transparency + local mock."
+    "This gateway is a demo of an online layer for the Portal UI.",
+    "Use D1 binding 'DB' for persistence (recommended). Optional R2 binding 'ARTIFACTS' for large artifacts.",
+    "Signature proofs are optional. If Ed25519 keys are provided, server attaches an ed25519 proof; otherwise it may attach HMAC proof."
   ]
 }

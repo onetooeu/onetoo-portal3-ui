@@ -661,77 +661,461 @@ function quorumComputeDecision(st){
   return { yes, no, need, result };
 }
 
+
 function wireGatewayAndQuorum(){
-  const gwLoad = document.getElementById("gwLoadSpec");
-  const gwMock = document.getElementById("gwMockToggle");
-  gwLoad && (gwLoad.onclick = loadGatewaySpec);
-  gwMock && (gwMock.onclick = toggleMockGateway);
+  // ===== Gateway (ONLINE MODE) =====
+  const el = (id)=>document.getElementById(id);
+  const gwUrl = el("gwUrl");
+  const gwKey = el("gwKey");
+  const outEl = el("gwOut");
+  const btnLoadSpec = el("gwLoadSpec");
+  const btnMock = el("gwMockToggle");
+  const btnHealth = el("gwHealth");
+  const btnPull = el("gwPull");
+  const btnPush = el("gwPush");
+  const btnListInbox = el("gwListInbox");
+  const btnListThreads = el("gwListThreads");
+  const btnListArtifacts = el("gwListArtifacts");
+  const btnListNotary = el("gwListNotary");
+  const btnAudit = el("gwAudit");
+  const btnSend = el("gwSend");
+  const btnQueueLocal = el("gwQueueLocal");
+  const btnRoomSend = el("gwRoomSend");
+  const btnRoomRead = el("gwRoomRead");
+  const btnNotaryCreate = el("gwNotaryCreate");
+  const btnPolicy = el("gwPolicy");
+  const policyOut = el("gwPolicyOut");
+  const listBox = el("gwListBox");
+  const artifactsBox = el("gwArtifactsBox");
 
-  const qRoom = document.getElementById("qRoom");
-  const qThresh = document.getElementById("qThresh");
-  const btnP = document.getElementById("qNewProposal");
-  const btnY = document.getElementById("qVoteYes");
-  const btnN = document.getElementById("qVoteNo");
-  const btnD = document.getElementById("qDecide");
+  const KEY = "ams_gateway_state_v1";
 
-  function getRoom(){ return (qRoom?.value||"room:core").trim(); }
+  function logOut(obj){
+    if(!outEl) return;
+    const txt = (typeof obj === "string") ? obj : JSON.stringify(obj, null, 2);
+    outEl.textContent = txt;
+  }
 
   function load(){
-    const room = getRoom();
-    const st = quorumLoad(room);
-    st.threshold = (qThresh?.value||st.threshold);
-    quorumRender(st);
-    return st;
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; }
   }
   function save(st){
-    const room = getRoom();
-    st.threshold = (qThresh?.value||st.threshold);
-    quorumSave(room, st);
-    quorumRender(st);
+    localStorage.setItem(KEY, JSON.stringify(st));
+  }
+  function normalizeBase(u){
+    if(!u) return (location.origin + "/ams/v1");
+    if(u.startsWith("/")) return location.origin + u;
+    if(!/^https?:\/\//i.test(u)) return location.origin + "/" + u.replace(/^\/+/, "");
+    return u.replace(/\/+$/,"");
+  }
+  function stNow(){
+    const st = load();
+    st.base = normalizeBase(st.base || "/ams/v1");
+    st.token = st.token || "";
+    st.mock = !!st.mock;
+    return st;
+  }
+  function apply(st){
+    if(gwUrl) gwUrl.value = st.base || "";
+    if(gwKey) gwKey.value = st.token || "";
+    if(btnMock) btnMock.textContent = "Mock: " + (st.mock ? "ON" : "OFF");
+  }
+  async function fetchJson(url, init={}){
+    const st = stNow();
+    if(st.mock){
+      // mock mode: no server calls (minimal simulation)
+      return { ok:true, mock:true, url, note:"Mock mode is enabled. No network request performed." };
+    }
+    const headers = new Headers(init.headers || {});
+    headers.set("accept", "application/json");
+    if(init.json){
+      headers.set("content-type", "application/json");
+      init.body = JSON.stringify(init.json);
+      delete init.json;
+    }
+    const tok = st.token || "";
+    if(tok && !headers.has("authorization")) headers.set("authorization", "Bearer " + tok);
+    const res = await fetch(url, { ...init, headers, cf: { cacheTtl: 0 }});
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = { raw:text }; }
+    if(!res.ok){
+      throw Object.assign(new Error("HTTP " + res.status), { status: res.status, data });
+    }
+    return data;
+  }
+  function api(path){
+    const st = stNow();
+    const base = normalizeBase(st.base || "/ams/v1");
+    return base.replace(/\/+$/,"") + "/" + String(path || "").replace(/^\/+/,"");
   }
 
-  btnP && (btnP.onclick = ()=>{
-    const st = load();
-    const root = "q-" + Math.random().toString(16).slice(2);
-    st.proposal = env("proposal","agent:composer",[getRoom()],{ title:"Proposal", body:"Describe desired action / change." }, { root, thread:{root,prev:null}, policy:{score:80,tags:["proposal","quorum"],reasons:["mock proposal"]} });
+  function renderMiniList(target, items, pick){
+    if(!target) return;
+    if(!items || !items.length){ target.innerHTML = '<div class="muted">empty</div>'; return; }
+    target.innerHTML = items.slice(0,20).map((x)=>{
+      const t = pick(x);
+      return `<div style="padding:.35rem .25rem;border-bottom:1px dashed rgba(0,0,0,.08)"><code>${escapeHtml(t)}</code></div>`;
+    }).join("");
+  }
+
+  async function loadSpec(){
+    const st = stNow();
+    const specUrl = location.origin + "/.well-known/ams-gateway-spec.json";
+    try{
+      const spec = await fetchJson(specUrl, { method:"GET" });
+      // Prefer our canonical base:
+      st.base = location.origin + "/ams/v1";
+      save(st); apply(st);
+      logOut({ ok:true, loaded_spec_from: specUrl, applied_base: st.base, spec });
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function health(){
+    try{
+      const data = await fetchJson(api("health"), { method:"GET" });
+      logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function listEnvelopes(){
+    try{
+      const data = await fetchJson(api("envelopes?limit=50"), { method:"GET" });
+      logOut(data);
+      renderMiniList(listBox, data.items || [], (e)=>`${e.updated_at || e.created_at || ""} :: ${e.type} :: ${e.id}`);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function listThreads(){
+    try{
+      const data = await fetchJson(api("threads?limit=50"), { method:"GET" });
+      logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function listArtifacts(){
+    try{
+      const data = await fetchJson(api("artifacts?limit=50"), { method:"GET" });
+      logOut(data);
+      renderMiniList(artifactsBox, data.items || [], (a)=>`${a.ts_updated || ""} :: ${a.key} :: ${a.sha256?.slice(0,10)}`);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function listNotary(){
+    try{
+      const data = await fetchJson(location.origin + "/notary/v1/records?limit=50", { method:"GET" });
+      logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function audit(){
+    try{
+      const data = await fetch(location.origin + "/audit/v1/events.ndjson?limit=200", {
+        headers: (()=>{
+          const st = stNow();
+          const h = new Headers({ "accept":"application/x-ndjson" });
+          if(st.token) h.set("authorization", "Bearer " + st.token);
+          return h;
+        })(),
+        cf:{ cacheTtl:0 }
+      });
+      const txt = await data.text();
+      logOut(txt);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e) });
+    }
+  }
+
+  async function pull(){
+    // Pull latest envelopes (public). For real inbox filtering, pass ?to=<entityId>.
+    await listEnvelopes();
+  }
+
+  async function pushLocal(){
+    const st = stNow();
+    if(st.mock){ logOut({ ok:true, mock:true, note:"Mock push. Nothing sent."}); return; }
+
+    const queued = (state && state.vault && Array.isArray(state.vault.outbox)) ? state.vault.outbox : [];
+    if(!queued.length){ logOut({ ok:true, note:"Local outbox is empty."}); return; }
+
+    const push = queued.slice(0, 50).map((e)=>{
+      // best-effort normalize
+      return {
+        id: e.id || ("env_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16)),
+        type: e.type || e.kind || "notice",
+        from: e.from || e.sender || null,
+        to: e.to || e.recipient || null,
+        thread: e.thread || e.thread_id || null,
+        status: e.status || "queued",
+        payload: e.payload || e.body || e.data || {},
+        meta: e.meta || {}
+      };
+    });
+
+    try{
+      const resp = await fetchJson(api("sync"), { method:"POST", json: { pull:false, push } });
+      logOut(resp);
+
+      // Mark local items as "sent" (non-destructive: we keep them, just flag)
+      const acceptedIds = new Set((resp.accepted || []).map(x=>x.id));
+      for(const e of queued){
+        if(acceptedIds.has(e.id)){
+          e.status = "sent";
+          e.meta = e.meta || {};
+          e.meta.gateway = e.meta.gateway || {};
+          e.meta.gateway.sent_at = new Date().toISOString();
+        }
+      }
+      saveVault();
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function sendOnline(){
+    const type = (el("gwComposeType")?.value || "notice").trim();
+    const thread = (el("gwComposeThread")?.value || "").trim() || null;
+    const from = (el("gwComposeFrom")?.value || "").trim() || null;
+    const to = (el("gwComposeTo")?.value || "").trim() || null;
+    const payloadRaw = el("gwComposePayload")?.value || "{}";
+    let payload = {};
+    try { payload = JSON.parse(payloadRaw || "{}"); } catch (e) { return alert("Payload must be valid JSON: " + e.message); }
+
+    try{
+      const data = await fetchJson(api("envelopes"), { method:"POST", json: { type, thread, from, to, payload, meta:{ ui:"ams.html", mode:"online" } } });
+      logOut(data);
+      await listEnvelopes();
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  function queueLocal(){
+    const type = (el("gwComposeType")?.value || "notice").trim();
+    const thread = (el("gwComposeThread")?.value || "").trim() || null;
+    const from = (el("gwComposeFrom")?.value || "").trim() || null;
+    const to = (el("gwComposeTo")?.value || "").trim() || null;
+    const payloadRaw = el("gwComposePayload")?.value || "{}";
+    let payload = {};
+    try { payload = JSON.parse(payloadRaw || "{}"); } catch (e) { return alert("Payload must be valid JSON: " + e.message); }
+
+    const envl = {
+      id: ("env_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16)),
+      type,
+      from,
+      to,
+      thread,
+      status: "queued",
+      payload,
+      meta: { ui:"ams.html", mode:"offline", queued_at: new Date().toISOString() }
+    };
+    state.vault.outbox = state.vault.outbox || [];
+    state.vault.outbox.unshift(envl);
+    state.vault.log = state.vault.log || [];
+    state.vault.log.unshift({ ts: new Date().toISOString(), kind:"outbox.queue", id: envl.id, type: envl.type });
+    saveVault();
+    logOut({ ok:true, queued_local: envl });
+  }
+
+  async function roomSend(){
+    const room = (el("gwRoomName")?.value || "lobby").trim() || "lobby";
+    const from = (el("gwRoomFrom")?.value || "").trim() || null;
+    const body = (el("gwRoomBody")?.value || "").trim();
+    try{
+      const data = await fetchJson(location.origin + "/room/v1/messages?room=" + encodeURIComponent(room), {
+        method:"POST",
+        json: { from, kind:"text", body: { text: body } }
+      });
+      logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function roomRead(){
+    const room = (el("gwRoomName")?.value || "lobby").trim() || "lobby";
+    try{
+      const data = await fetchJson(location.origin + "/room/v1/messages?room=" + encodeURIComponent(room) + "&limit=100", {
+        method:"GET"
+      });
+      logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function notaryCreate(){
+    const subject = (el("gwNotarySubject")?.value || "").trim();
+    const sha = (el("gwNotarySha")?.value || "").trim();
+    const metaRaw = (el("gwNotaryMeta")?.value || "{}");
+    let meta = {};
+    try{ meta = JSON.parse(metaRaw || "{}"); } catch(e){ return alert("Meta must be valid JSON: " + e.message); }
+    try{
+      const data = await fetchJson(location.origin + "/notary/v1/records", {
+        method:"POST",
+        json: { kind:"artifact", subject, sha256: sha, meta }
+      });
+      logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  async function loadPolicy(){
+    try{
+      const data = await fetchJson(api("policy"), { method:"GET" });
+      if(policyOut) policyOut.textContent = JSON.stringify(data.policy || data, null, 2);
+      else logOut(data);
+    }catch(e){
+      logOut({ ok:false, error: String(e.message||e), detail: e.data||null });
+    }
+  }
+
+  // Persist inputs
+  if(gwUrl){
+    gwUrl.addEventListener("change", ()=>{
+      const st = stNow();
+      st.base = gwUrl.value.trim();
+      save(st);
+      apply(st);
+    });
+  }
+  if(gwKey){
+    gwKey.addEventListener("change", ()=>{
+      const st = stNow();
+      st.token = gwKey.value.trim();
+      save(st);
+      apply(st);
+    });
+  }
+
+  btnLoadSpec && (btnLoadSpec.onclick = loadSpec);
+  btnHealth && (btnHealth.onclick = health);
+  btnPull && (btnPull.onclick = pull);
+  btnPush && (btnPush.onclick = pushLocal);
+  btnListInbox && (btnListInbox.onclick = listEnvelopes);
+  btnListThreads && (btnListThreads.onclick = listThreads);
+  btnListArtifacts && (btnListArtifacts.onclick = listArtifacts);
+  btnListNotary && (btnListNotary.onclick = listNotary);
+  btnAudit && (btnAudit.onclick = audit);
+  btnSend && (btnSend.onclick = sendOnline);
+  btnQueueLocal && (btnQueueLocal.onclick = queueLocal);
+  btnRoomSend && (btnRoomSend.onclick = roomSend);
+  btnRoomRead && (btnRoomRead.onclick = roomRead);
+  btnNotaryCreate && (btnNotaryCreate.onclick = notaryCreate);
+  btnPolicy && (btnPolicy.onclick = loadPolicy);
+
+  btnMock && (btnMock.onclick = ()=>{
+    const st = stNow();
+    st.mock = !st.mock;
+    save(st);
+    apply(st);
+    logOut({ ok:true, mock: st.mock });
+  });
+
+  // init
+  const st0 = stNow();
+  apply(st0);
+  // Load policy preview on first open
+  policyOut && (policyOut.textContent = "");
+  listEnvelopes().catch(()=>{});
+
+  // ===== QUORUM / CONSENSUS (unchanged mock) =====
+  const qInfo = el("quorumInfo");
+  const btnAdd = el("qAddPeer");
+  const btnProp = el("qPropose");
+  const btnYes = el("qVoteYes");
+  const btnNo = el("qVoteNo");
+  const btnDecide = el("qDecide");
+  const btnReset = el("qReset");
+
+  function qLoad(){
+    try { return JSON.parse(localStorage.getItem("ams_quorum_state_v1") || "{}"); } catch { return {}; }
+  }
+  function qSave(st){
+    localStorage.setItem("ams_quorum_state_v1", JSON.stringify(st));
+    renderQuorum(st, qInfo);
+  }
+  function getRoom(){
+    return (document.getElementById("qRoom")?.value || "room:demo").trim();
+  }
+  function env(kind, from, toArr, payload, thread){
+    return envDefault(kind, from, toArr, payload, thread);
+  }
+
+  btnAdd && (btnAdd.onclick = ()=>{
+    const host = (document.getElementById("qPeerHost")?.value || "").trim();
+    if(!host) return alert("peer host required");
+    const st = qLoad();
+    st.peers = st.peers || [];
+    if(!st.peers.includes(host)) st.peers.push(host);
+    qSave(st);
+  });
+
+  btnProp && (btnProp.onclick = ()=>{
+    const st = qLoad();
+    st.threshold = parseInt(document.getElementById("qThreshold")?.value || "2",10) || 2;
     st.votes = [];
     st.decided = false;
-    st.decision = null;
-    save(st);
+    st.proposal = env("proposal", "agent:conductor", [getRoom()], {
+      title: (document.getElementById("qTitle")?.value || "Proposal").trim(),
+      body: (document.getElementById("qBody")?.value || "Demo body").trim()
+    });
+    qSave(st);
   });
 
-  btnY && (btnY.onclick = ()=>{
-    const st = load();
-    if (!st.proposal) return alert("Create proposal first");
+  btnYes && (btnYes.onclick = ()=>{
+    const st = qLoad();
+    if(!st.proposal) return alert("Create proposal first");
+    st.votes = st.votes || [];
     st.votes.push(env("vote","agent:reviewer",[getRoom()],{ choice:"yes" }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }));
-    save(st);
+    qSave(st);
   });
 
-  btnN && (btnN.onclick = ()=>{
-    const st = load();
-    if (!st.proposal) return alert("Create proposal first");
+  btnNo && (btnNo.onclick = ()=>{
+    const st = qLoad();
+    if(!st.proposal) return alert("Create proposal first");
+    st.votes = st.votes || [];
     st.votes.push(env("vote","agent:reviewer",[getRoom()],{ choice:"no" }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }));
-    save(st);
+    qSave(st);
   });
 
-  btnD && (btnD.onclick = ()=>{
-    const st = load();
-    if (!st.proposal) return alert("Create proposal first");
+  btnDecide && (btnDecide.onclick = ()=>{
+    const st = qLoad();
+    if(!st.proposal) return alert("Create proposal first");
     const d = quorumComputeDecision(st);
     st.decision = env("decision","agent:conductor",[getRoom()],{
       threshold: st.threshold,
       tally: d,
       result: d.result,
       proposal_id: st.proposal.id,
-      votes: st.votes.map(v=>({id:v.id, choice:v.payload?.choice}))
+      votes: (st.votes||[]).map(v=>({id:v.id, choice:v.payload?.choice}))
     }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id, policy:{score:90,tags:["decision","quorum"],reasons:["mock deterministic decision"]} });
     st.decided = (d.result !== "undecided");
-    save(st);
+    qSave(st);
+  });
+
+  btnReset && (btnReset.onclick = ()=>{
+    localStorage.removeItem("ams_quorum_state_v1");
+    renderQuorum({}, qInfo);
   });
 
   // initial render
-  load();
+  renderQuorum(qLoad(), qInfo);
 }
+
 
 document.addEventListener("DOMContentLoaded", wireGatewayAndQuorum);
 

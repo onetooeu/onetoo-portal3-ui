@@ -145,23 +145,125 @@
   <script type="module" src="/assets/ams.js"></script>
 <section class="panel" data-panel="gateway" id="panelGateway" style="display:none">
   <div class="card">
-    <div class="row between">
-      <h2 style="margin:0">Gateway (disabled)</h2>
-      <span class="badge subtle">read-only UI</span>
-    </div>
-    <p class="small">
-      AMS is not an email client. This UI is offline-first and does not send messages.
-      Gateway is intentionally <b>disabled</b> until an agent service exists.
+    <h2>ONLINE MODE (Gateway)</h2>
+    <p class="muted">
+      This portal is <b>offline-first</b>. ONLINE MODE enables a real gateway layer (Cloudflare Pages Functions)
+      with <code>/ams/v1/*</code> endpoints. <b>Read is public</b>; <b>write requires a token</b> (Bearer).
+      You can keep the UI safe by leaving token empty.
     </p>
-    <div class="row">
-      <button class="btn" id="gwLoadSpec">Load spec</button>
-      <button class="btn" id="gwMockToggle">Enable Mock Gateway (local)</button>
-      <span class="badge" id="gwState">disabled</span>
+
+    <div class="grid2">
+      <div>
+        <div class="row">
+          <button id="gwLoadSpec">Load spec</button>
+          <button id="gwHealth">Health</button>
+          <button id="gwPull">Pull</button>
+          <button id="gwPush">Push local queue</button>
+          <button id="gwMockToggle" title="Mock mode: no server calls">Mock: OFF</button>
+        </div>
+
+        <label class="small">Gateway base URL</label>
+        <input id="gwUrl" class="mono" placeholder="https://portal.onetoo.eu/ams/v1" />
+
+        <label class="small">Write token (Bearer)</label>
+        <input id="gwKey" class="mono" type="password" placeholder="(optional) Bearer token for write operations" />
+
+        <div class="row">
+          <button id="gwListInbox">List envelopes</button>
+          <button id="gwListThreads">List threads</button>
+          <button id="gwListArtifacts">List artifacts</button>
+          <button id="gwListNotary">List notary</button>
+          <button id="gwAudit">Audit NDJSON</button>
+        </div>
+
+        <details>
+          <summary>Compose + send ONLINE</summary>
+          <div class="grid2">
+            <div>
+              <label class="small">Type</label>
+              <input id="gwComposeType" class="mono" value="notice" />
+            </div>
+            <div>
+              <label class="small">Thread</label>
+              <input id="gwComposeThread" class="mono" placeholder="thread id (optional)" />
+            </div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="small">From</label>
+              <input id="gwComposeFrom" class="mono" placeholder="entity id" />
+            </div>
+            <div>
+              <label class="small">To</label>
+              <input id="gwComposeTo" class="mono" placeholder="entity id (optional)" />
+            </div>
+          </div>
+          <label class="small">Payload (JSON)</label>
+          <textarea id="gwComposePayload" class="mono" rows="8">{ "hello": "world" }</textarea>
+          <div class="row">
+            <button id="gwSend">Send ONLINE</button>
+            <button id="gwQueueLocal">Queue LOCAL (offline vault)</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>AI Room (ONLINE)</summary>
+          <div class="grid2">
+            <div>
+              <label class="small">Room</label>
+              <input id="gwRoomName" class="mono" value="lobby" />
+            </div>
+            <div>
+              <label class="small">From</label>
+              <input id="gwRoomFrom" class="mono" placeholder="entity id" />
+            </div>
+          </div>
+          <label class="small">Message</label>
+          <textarea id="gwRoomBody" class="mono" rows="4">Hello from Portal!</textarea>
+          <div class="row">
+            <button id="gwRoomSend">Send message</button>
+            <button id="gwRoomRead">Read room</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>Notary (ONLINE)</summary>
+          <label class="small">Subject</label>
+          <input id="gwNotarySubject" class="mono" placeholder="artifact key / url / label" />
+          <label class="small">SHA-256</label>
+          <input id="gwNotarySha" class="mono" placeholder="sha256 hex" />
+          <label class="small">Meta (JSON)</label>
+          <textarea id="gwNotaryMeta" class="mono" rows="4">{ "note": "demo record" }</textarea>
+          <div class="row">
+            <button id="gwNotaryCreate">Create record</button>
+          </div>
+        </details>
+
+        <h3 class="small">Output</h3>
+        <pre id="gwOut" class="mono pre"></pre>
+      </div>
+
+      <div>
+        <h3>Quick view</h3>
+        <p class="muted small">These are live lists from the gateway (or mock mode).</p>
+        <div class="grid2">
+          <div>
+            <h4 class="small">Latest envelopes</h4>
+            <div id="gwListBox" class="mono small"></div>
+          </div>
+          <div>
+            <h4 class="small">Latest artifacts</h4>
+            <div id="gwArtifactsBox" class="mono small"></div>
+          </div>
+        </div>
+
+        <h4 class="small">Policy</h4>
+        <div class="row">
+          <button id="gwPolicy">Load policy</button>
+        </div>
+        <pre id="gwPolicyOut" class="mono pre"></pre>
+      </div>
     </div>
-    <pre class="mono small" id="gwOut"></pre>
-    <p class="small muted">
-      Contract draft lives at <code>/.well-known/ams-gateway-spec.json</code>. Mock mode stores a local "gateway" flag and generates receipts locally.
-    </p>
   </div>
 </section>
 

@@ -20,3 +20,5 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 # --- SPA fallback (last) ---
 /portal             /portal/index.html 200
 /portal/*           /portal/index.html 200
+
+/portal3  /portal3.html  200

@@ -1,4 +1,4 @@
-// Shared utilities for ONETOO Portal online gateways (Pages Functions)
+﻿// Shared utilities for ONETOO Portal online gateways (Pages Functions)
 
 export function json(data, init = {}) {
   const h = new Headers(init.headers || {});
@@ -60,6 +60,11 @@ export function getBearerToken(request) {
 }
 
 export function requireWriteAuth(request, env) {
+  // PUBLIC OPEN MODE (experimental): allow write without token when enabled.
+  if (env && String(env.AMS_PUBLIC_WRITE || "") === "1") {
+    return { ok: true };
+  }
+
   // Write token can be set as AMS_WRITE_TOKEN or AMS_ADMIN_TOKEN
   const want = (env && (env.AMS_WRITE_TOKEN || env.AMS_ADMIN_TOKEN)) ? String(env.AMS_WRITE_TOKEN || env.AMS_ADMIN_TOKEN) : "";
   if (!want) return { ok: false, why: "server_write_token_not_configured" };
@@ -149,3 +154,4 @@ export async function maybeSign(env, payloadObj) {
 
   return null;
 }
+

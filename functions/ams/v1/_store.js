@@ -183,9 +183,9 @@ export async function upsertArtifact(env, key, payload, meta = {}) {
 
   if (hasD1(env)) {
     await env.DB.prepare(
-      "INSERT INTO artifacts (key, sha256, ts_created, ts_updated, bytes, content_type, note, stored_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-       ON CONFLICT(key) DO UPDATE SET sha256=excluded.sha256, ts_updated=excluded.ts_updated, bytes=excluded.bytes, content_type=excluded.content_type, note=excluded.note, stored_json=excluded.stored_json"
-    )
+        `INSERT INTO artifacts (key, sha256, ts_created, ts_updated, bytes, content_type, note, stored_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+         ON CONFLICT(key) DO UPDATE SET sha256=excluded.sha256, ts_updated=excluded.ts_updated, bytes=excluded.bytes, content_type=excluded.content_type, note=excluded.note, stored_json=excluded.stored_json`
+      )
       .bind(key, sha, row.ts_created, row.ts_updated, row.bytes, row.content_type, row.note, JSON.stringify(row.stored))
       .run();
   } else {

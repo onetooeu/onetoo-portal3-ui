@@ -1,8 +1,35 @@
-/status   /portal/status   301
-/docs     /portal/docs     301
-/status.html   /status   301
-/docs.html     /docs     301
-# --- Portal legacy .html -> portal pretty (avoid 308 hops) ---
+# =========================
+# ONETOO Portal redirects
+# clean + no duplicates
+# =========================
+
+# --- Root short aliases (canonical pretty) ---
+/home           /                 301
+/registry       /portal/entities  301
+/search         /portal/search    301
+/federation     /portal/federation 301
+/audit          /portal/audit     301
+/artifacts      /portal/artifacts 301
+/room           /portal/room      301
+/notary         /portal/notary    301
+/status         /portal/status    301
+/docs           /portal/docs      301
+/ams            /ams.html         301
+
+# --- Root legacy .html -> canonical ---
+/index.html       /               301
+/home.html        /               301
+/registry.html    /portal/entities 301
+/search.html      /portal/search   301
+/federation.html  /portal/federation 301
+/audit.html       /portal/audit    301
+/artifacts.html   /portal/artifacts 301
+/room.html        /portal/room     301
+/notary.html      /portal/notary   301
+/status.html      /portal/status   301
+/docs.html        /portal/docs     301
+
+# --- Portal legacy .html -> portal pretty (avoid extra hops) ---
 /portal/entities.html    /portal/entities    301
 /portal/search.html      /portal/search      301
 /portal/federation.html  /portal/federation  301
@@ -11,61 +38,22 @@
 /portal/status.html      /portal/status      301
 /portal/docs.html        /portal/docs        301
 /portal/notary.html      /portal/notary      301
-/portal/merchant.html    /portal/merchant    301
 /portal/room.html        /portal/room        301
+/portal/merchant.html    /portal/merchant    301
 /portal/explain.html     /portal/explain     301
-# --- Legacy .html entrypoints -> canonical pretty URLs (force clean address bar) ---
-/index.html       /                 301
-/home.html        /                 301
 
-/registry.html    /registry          301
-/search.html      /search            301
-/federation.html  /federation        301
-/audit.html       /audit             301
-/artifacts.html   /artifacts         301
-/room.html        /room              301
-/notary.html      /notary            301
-
-/status.html      /portal/status     301
-/docs.html        /portal/docs       301
-# --- Portal nav aliases (pretty URLs) ---
-/home        /           301
-/registry    /portal/entities.html   301
-/search      /portal/search.html     301
-/federation  /portal/federation.html 301
-/audit       /portal/audit.html      301
-/artifacts   /portal/artifacts.html  301
-/room        /portal/room.html       301
-/notary      /portal/notary.html     301
-/ams         /ams.html               301
 # --- HTTPS hygiene ---
 http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 
-# --- NEVER rewrite static assets/partials/well-known (must remain real files) ---
-/portal/assets/*      /portal/assets/:splat      200
-/portal/_partials/*   /portal/_partials/:splat   200
-/portal/.well-known/* /portal/.well-known/:splat 200
-/.well-known/*        /.well-known/:splat        200
+# --- NEVER let SPA fallback swallow static/partials/well-known ---
+/portal/assets/*       /portal/assets/:splat       200
+/portal/_partials/*    /portal/_partials/:splat    200
+/portal/.well-known/*  /portal/.well-known/:splat  200
+/.well-known/*         /.well-known/:splat         200
 
-# --- Friendly short aliases ---
-/docs    /portal/docs.html    308
-/status  /portal/status.html  308
+# --- SPA fallback (LAST) ---
+/portal              /portal/__spa.html 200
+/portal/*            /portal/__spa.html 200
 
-# --- Hard block: do NOT let SPA fallback swallow these prefixes ---
-/portal/assets/*      404
-/portal/_partials/*   404
-
-# --- SPA fallback (last) ---
-/portal             /portal/index.html 200
-/portal/*           /portal/index.html 200
-
-/portal3  /portal3.html  200
-
-# --- Portal nav aliases (pretty URLs) ---
-/home        /           301
-/registry    /portal/entities.html   301
-/search      /portal/search.html     301
-/federation  /portal/federation.html 301
-/artifacts   /portal/artifacts.html  301
-/room        /portal/room.html       301
-/notary      /portal/notary.html     301
+# --- Single-page entry (optional) ---
+/portal3             /portal3.html      200

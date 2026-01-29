@@ -6,7 +6,7 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /index.html  / 301
 /home.html   / 301
 
-# --- Short aliases -> Portal pretty URLs ---
+# --- Short aliases (top nav) -> Portal pretty URLs ---
 /registry    /portal/entities   301
 /search      /portal/search     301
 /federation  /portal/federation 301
@@ -16,13 +16,19 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /notary      /portal/notary     301
 /status      /portal/status     301
 /docs        /portal/docs       301
-/ams         /portal/ams        301
+/ams         /ams.html          301
+
+# --- NEVER swallow static assets/partials/well-known ---
+/portal/assets/*      /portal/assets/:splat      200
+/portal/_partials/*   /portal/_partials/:splat   200
+/portal/.well-known/* /portal/.well-known/:splat 200
+/.well-known/*        /.well-known/:splat        200
 
 # --- Portal entry ---
 /portal      /portal/index.html 200
 /portal/     /portal/index.html 200
 
-# --- Portal pretty -> real HTML (serve pages, keep pretty URL) ---
+# --- Portal pretty -> real HTML (serve page, keep pretty URL) ---
 /portal/entities     /portal/entities.html     200
 /portal/search       /portal/search.html       200
 /portal/federation   /portal/federation.html   200
@@ -32,7 +38,6 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /portal/notary       /portal/notary.html       200
 /portal/status       /portal/status.html       200
 /portal/docs         /portal/docs.html         200
-/portal/ams          /portal/ams.html          200
 /portal/explain      /portal/explain.html      200
 /portal/merchant     /portal/merchant.html     200
 
@@ -46,13 +51,12 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /portal/notary.html       /portal/notary       301
 /portal/status.html       /portal/status       301
 /portal/docs.html         /portal/docs         301
-/portal/ams.html          /portal/ams          301
 /portal/explain.html      /portal/explain      301
 /portal/merchant.html     /portal/merchant     301
 
-# --- Compatibility fallback (if something still points to __spa) ---
-/portal/__spa    /portal/ 302
-/portal/__spa/*  /portal/ 302
+# --- Compatibility: if anything still hits __spa, bounce to /portal/ ---
+/portal/__spa      /portal/ 302
+/portal/__spa/*    /portal/ 302
 
-# --- SPA fallback (last) ---
+# --- SPA fallback (LAST) ---
 /portal/* /portal/index.html 200

@@ -1,62 +1,41 @@
-﻿# --- HTTPS hygiene ---
-http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
+# =========================
+# ONETOO Portal UI routing
+# =========================
 
-# --- Root helpers ---
-/home        / 301
-/index.html  / 301
-/home.html   / 301
+# Legacy/compat: ak niekde existuje odkaz na __spa, pošli preč
+/portal/__spa            /portal/                 302
+/portal/__spa/*          /portal/                 302
 
-# --- Short aliases (top nav) -> Portal pretty URLs ---
-/registry    /portal/entities   301
-/search      /portal/search     301
-/federation  /portal/federation 301
-/audit       /portal/audit      301
-/artifacts   /portal/artifacts  301
-/room        /portal/room       301
-/notary      /portal/notary     301
-/status      /portal/status     301
-/docs        /portal/docs       301
-/ams         /ams.html          301
+# Explicit "pretty routes" -> konkrétne HTML (musia byť pred fallbackom)
+/portal                  /portal/index.html       200
+/portal/                 /portal/index.html       200
 
-# --- NEVER swallow static assets/partials/well-known ---
-/portal/assets/*      /portal/assets/:splat      200
-/portal/_partials/*   /portal/_partials/:splat   200
-/portal/.well-known/* /portal/.well-known/:splat 200
-/.well-known/*        /.well-known/:splat        200
+/portal/entities         /portal/entities.html    200
+/portal/entities/        /portal/entities.html    200
 
-# --- Portal entry ---
-/portal      /portal/index.html 200
-/portal/     /portal/index.html 200
+/portal/search           /portal/search.html      200
+/portal/search/          /portal/search.html      200
 
-# --- Portal pretty -> real HTML (serve page, keep pretty URL) ---
-/portal/entities     /portal/entities.html     200
-/portal/search       /portal/search.html       200
-/portal/federation   /portal/federation.html   200
-/portal/audit        /portal/audit.html        200
-/portal/artifacts    /portal/artifacts.html    200
-/portal/room         /portal/room.html         200
-/portal/notary       /portal/notary.html       200
-/portal/status       /portal/status.html       200
-/portal/docs         /portal/docs.html         200
-/portal/explain      /portal/explain.html      200
-/portal/merchant     /portal/merchant.html     200
+/portal/federation       /portal/federation.html  200
+/portal/federation/      /portal/federation.html  200
 
-# --- Legacy portal .html -> pretty (clean address bar) ---
-/portal/entities.html     /portal/entities     301
-/portal/search.html       /portal/search       301
-/portal/federation.html   /portal/federation   301
-/portal/audit.html        /portal/audit        301
-/portal/artifacts.html    /portal/artifacts    301
-/portal/room.html         /portal/room         301
-/portal/notary.html       /portal/notary       301
-/portal/status.html       /portal/status       301
-/portal/docs.html         /portal/docs         301
-/portal/explain.html      /portal/explain      301
-/portal/merchant.html     /portal/merchant     301
+/portal/audit            /portal/audit.html       200
+/portal/audit/           /portal/audit.html       200
 
-# --- Compatibility: if anything still hits __spa, bounce to /portal/ ---
-/portal/__spa      /portal/ 302
-/portal/__spa/*    /portal/ 302
+/portal/artifacts        /portal/artifacts.html   200
+/portal/artifacts/       /portal/artifacts.html   200
 
-# --- SPA fallback (LAST) ---
-/portal/* /portal/index.html 200
+/portal/room             /portal/room.html        200
+/portal/room/            /portal/room.html        200
+
+/portal/notary           /portal/notary.html      200
+/portal/notary/          /portal/notary.html      200
+
+/portal/status           /portal/status.html      200
+/portal/status/          /portal/status.html      200
+
+/portal/docs             /portal/docs.html        200
+/portal/docs/            /portal/docs.html        200
+
+# Posledný fallback pre /portal (SPA / unknown)
+/portal/*                /portal/index.html       200

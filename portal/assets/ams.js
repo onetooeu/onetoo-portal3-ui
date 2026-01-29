@@ -1,12 +1,25 @@
 ﻿import { getConfig, mountHeader, mountFooter, escapeHtml, safeJson, downloadText, humanBytes, fmtTs } from "./app.js";
 
+/**
+ * AMS.JS — ONLINE-FIXED (2026-01)
+ * - Fixes 401 flow (Bearer token support + UI persistence + clear state)
+ * - Fixes 2 silent traps:
+ *    (1) setTab() programmatic navigation now routes special panels (gateway/quorum)
+ *    (2) quorum vote counting reads payload.choice (was v.choice)
+ * - Removes undefined isOnlineSubmitEnabled() gating (was hard crash)
+ * - Adds Mock Gateway mode: lets you test “Send online” without server writes
+ */
+
 const cfg = getConfig();
 mountHeader(cfg);
 mountFooter(cfg);
 
 const VAULT_KEY = "onetoo_ams_vault_v1";
+const GW_TOKEN_KEY = "onetoo_ams_gateway_write_token_v1";
+const GW_MOCK_KEY  = "onetoo_ams_gateway_mock";
 
 const els = {
+  // core UI
   meta: document.getElementById("meta"),
   list: document.getElementById("list"),
   panelTitle: document.getElementById("panelTitle"),
@@ -22,6 +35,7 @@ const els = {
   map: document.getElementById("map"),
   mapMeta: document.getElementById("mapMeta"),
 
+  // compose
   cFrom: document.getElementById("cFrom"),
   cTo: document.getElementById("cTo"),
   cKind: document.getElementById("cKind"),
@@ -31,6 +45,27 @@ const els = {
   btnQueueOutbox: document.getElementById("btnQueueOutbox"),
   btnCopyRaw: document.getElementById("btnCopyRaw"),
   composeMeta: document.getElementById("composeMeta"),
+
+  // gateway panel (must exist in ams.html)
+  gwOut: document.getElementById("gwOut"),
+  gwState: document.getElementById("gwState"),
+  gwLoadSpec: document.getElementById("gwLoadSpec"),
+  gwMockToggle: document.getElementById("gwMockToggle"),
+  gwSubmitOnline: document.getElementById("gwSubmitOnline"),
+  gwToken: document.getElementById("gwToken"),
+  gwTokenSave: document.getElementById("gwTokenSave"),
+  gwTokenClear: document.getElementById("gwTokenClear"),
+  gwAuthState: document.getElementById("gwAuthState"),
+
+  // quorum panel
+  qRoom: document.getElementById("qRoom"),
+  qThresh: document.getElementById("qThresh"),
+  qNewProposal: document.getElementById("qNewProposal"),
+  qVoteYes: document.getElementById("qVoteYes"),
+  qVoteNo: document.getElementById("qVoteNo"),
+  qDecide: document.getElementById("qDecide"),
+  qOut: document.getElementById("qOut"),
+  qState: document.getElementById("qState"),
 };
 
 let state = {
@@ -39,13 +74,156 @@ let state = {
   vault: { meta:{ created:new Date().toISOString() }, inbox:[], outbox:[], log:[] }
 };
 
+/* ============================
+   Helpers
+============================ */
+function isMockGatewayEnabled(){
+  try { return localStorage.getItem(GW_MOCK_KEY) === "1"; } catch { return false; }
+}
+function setGwState(txt){
+  if (els.gwState) els.gwState.textContent = txt;
+}
+function setAuthState(){
+  if (!els.gwAuthState) return;
+  const tok = getWriteToken();
+  els.gwAuthState.textContent = tok ? `auth: token set (${Math.min(8, tok.length)}+)` : "auth: empty";
+}
+
+function getWriteToken(){
+  const tok = (els.gwToken?.value || "").trim();
+  return tok;
+}
+
+function persistWriteToken(token){
+  try{
+    if (token) localStorage.setItem(GW_TOKEN_KEY, token);
+    else localStorage.removeItem(GW_TOKEN_KEY);
+  }catch{}
+  setAuthState();
+}
+
+function loadWriteToken(){
+  try{
+    const t = localStorage.getItem(GW_TOKEN_KEY) || "";
+    if (els.gwToken) els.gwToken.value = t;
+  }catch{}
+  setAuthState();
+}
+
+/* ============================
+   API compatibility: type vs kind
+   - UI uses legacy `kind` (ams-envelope-0.2)
+   - Gateway expects strict `type`
+============================ */
+function normalizeEnvelopeForApi(env){
+  const out = { ...(env || {}) };
+
+  // Server expects: { type, payload, ts, ... }
+  if (!out.type && out.kind) out.type = out.kind;
+
+  // keep payload as-is
+  if (!out.ts) out.ts = new Date().toISOString();
+
+  // remove legacy `kind` field
+  delete out.kind;
+
+  // meta stable
+  if (!out.meta || typeof out.meta !== "object") out.meta = {};
+
+  return out;
+}
+
+/* ============================
+   Gateway spec helpers
+============================ */
+let gwSpecCache = null;
+
+function findSpecEndpoint(spec, id){
+  const eps = (spec && Array.isArray(spec.endpoints)) ? spec.endpoints : [];
+  return eps.find(x => x && x.id === id) || null;
+}
+
+function resolveGatewayUrl(path){
+  if (!path) return null;
+  try{
+    return new URL(path, location.origin).toString();
+  }catch{
+    return String(path);
+  }
+}
+
+async function loadGatewaySpec(){
+  if (els.gwOut) els.gwOut.textContent = "Loading spec…";
+  setGwState("loading…");
+  try{
+    const r = await fetch("/.well-known/ams-gateway-spec.json", { cache:"no-store" });
+    const t = await r.text();
+
+    if (els.gwOut) els.gwOut.textContent = t;
+
+    const obj = safeJson(t, null);
+    if (obj && typeof obj === "object") gwSpecCache = obj;
+
+    setGwState("spec loaded");
+    return gwSpecCache;
+  }catch(e){
+    if (els.gwOut) els.gwOut.textContent = String(e?.message||e);
+    setGwState("spec error");
+    throw e;
+  }
+}
+
+/**
+ * POST envelope to gateway
+ * - Adds Authorization: Bearer <token> if present
+ */
+async function postEnvelopeToGateway(env){
+  const spec = gwSpecCache;
+  const ep = findSpecEndpoint(spec, "ingest_envelope");
+  const path = ep?.path || "/ams/v1/envelopes";
+  const url = resolveGatewayUrl(path);
+
+  const payload = normalizeEnvelopeForApi(env);
+
+  const headers = { "content-type": "application/json" };
+  const token = getWriteToken();
+  if (token) headers["authorization"] = "Bearer " + token;
+
+  const r = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload)
+  });
+
+  const text = await r.text();
+  const json = safeJson(text, null);
+
+  if (!r.ok){
+    // Provide a useful error message (especially for 401)
+    const serverMsg = (json && (json.message || json.error))
+      ? `${json.error || "error"}: ${json.message || ""}`.trim()
+      : (text || "").trim();
+
+    if (r.status === 401){
+      throw new Error((serverMsg || "401 Unauthorized") + " — missing/wrong token or server expects different secret.");
+    }
+    throw new Error(serverMsg || ("HTTP " + r.status));
+  }
+
+  return json || { ok:true, raw:text };
+}
+
+/* ============================
+   Vault storage
+============================ */
 function setMeta(){
+  if (!els.meta) return;
   const bytes = new TextEncoder().encode(JSON.stringify(state.vault)).length;
   els.meta.textContent = `vault: ${humanBytes(bytes)} • inbox ${state.vault.inbox.length} • outbox ${state.vault.outbox.length} • log ${state.vault.log.length}`;
 }
 
 function saveVault(){
-  localStorage.setItem(VAULT_KEY, JSON.stringify(state.vault));
+  try{ localStorage.setItem(VAULT_KEY, JSON.stringify(state.vault)); }catch{}
   setMeta();
 }
 
@@ -60,6 +238,9 @@ function loadVault(){
   setMeta();
 }
 
+/* ============================
+   Deterministic sorting + envelope normalization (UI)
+============================ */
 function sortDet(a,b){
   const pa = (a.priority ?? 999);
   const pb = (b.priority ?? 999);
@@ -87,25 +268,27 @@ function normalizeEnv(e){
   };
 }
 
-
 function upsertFront(list, item){
   const id = item && item.id;
   if (!id) return;
-  // remove any existing
   for (let i=list.length-1; i>=0; i--){
     if (list[i] && list[i].id === id) list.splice(i,1);
   }
   list.unshift(item);
-  // cap to keep it light
   if (list.length > 200) list.length = 200;
 }
 
+/* ============================
+   Rendering
+============================ */
 function renderList(items){
   const arr = items.slice().sort(sortDet);
   if (!arr.length){
-    els.list.innerHTML = `<div class="small muted">No items.</div>`;
+    if (els.list) els.list.innerHTML = `<div class="small muted">No items.</div>`;
     return;
   }
+  if (!els.list) return;
+
   els.list.innerHTML = arr.map(e=>{
     const tags = []
       .concat(e.kind ? [e.kind] : [])
@@ -168,9 +351,9 @@ function openById(id){
   if (!e0) return;
   const e = normalizeEnv(e0);
   state.selectedId = e.id;
-  els.inspector.innerHTML = safeInspector(e);
-  els.raw.value = JSON.stringify(e, null, 2);
-  drawMap(); // update highlight context
+  if (els.inspector) els.inspector.innerHTML = safeInspector(e);
+  if (els.raw) els.raw.value = JSON.stringify(e, null, 2);
+  drawMap();
 }
 
 function pinById(id){
@@ -178,28 +361,32 @@ function pinById(id){
   if (!e0) return;
   const e = normalizeEnv(e0);
   upsertFront(state.vault.log, e);
-    saveVault();
+  saveVault();
   drawMap();
 }
 
-async function loadDemo(){
-  const url = "/.well-known/ams-demo-log.jsonl?cb=" + Date.now();
-  const r = await fetch(url, { cache:"no-store" });
-  const t = await r.text();
-  const lines = t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  const events = [];
-  for (const ln of lines){
-    const obj = safeJson(ln, null);
-    const e = normalizeEnv(obj);
-    if (e && e.id) events.push(e);
+/* ============================
+   Tabs + special panels
+============================ */
+function __amsRoutePanels(tab){
+  const panels = Array.from(document.querySelectorAll("section.panel[data-panel]"));
+  for (const p of panels){
+    p.style.display = (p.dataset.panel === tab) ? "block" : "none";
   }
-  // heuristics: receipts+alerts go inbox, others to log
-  state.vault.inbox = events.filter(e=>["receipt","alert"].includes(e.kind));
-  state.vault.log = events.filter(e=>!["receipt","alert"].includes(e.kind));
-  // keep outbox untouched
-  saveVault();
-  renderCurrent();
-  drawMap();
+
+  const grid = document.querySelector(".amsGrid");
+  if (grid){
+    grid.style.display = (tab === "gateway" || tab === "quorum") ? "none" : "";
+  }
+
+  if (tab === "gateway"){
+    const el = document.getElementById("panelGateway");
+    el && el.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+  if (tab === "quorum"){
+    const el = document.getElementById("panelQuorum");
+    el && el.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
 }
 
 function setTab(tab){
@@ -208,50 +395,59 @@ function setTab(tab){
     const t = b.getAttribute("data-tab");
     b.classList.toggle("active", t===tab);
   });
+  __amsRoutePanels(tab);              // ✅ critical: programmatic navigation works too
   renderCurrent();
 }
 
 function renderCurrent(){
   const tab = state.tab;
-  els.panelTitle.textContent = tab.charAt(0).toUpperCase()+tab.slice(1);
+  if (els.panelTitle) els.panelTitle.textContent = tab.charAt(0).toUpperCase()+tab.slice(1);
 
   if (tab==="inbox"){
-    els.panelHint.textContent = "Deterministic list (priority → time → id).";
+    if (els.panelHint) els.panelHint.textContent = "Deterministic list (priority → time → id).";
     renderList(state.vault.inbox);
     return;
   }
   if (tab==="outbox"){
-    els.panelHint.textContent = "Queued envelopes (local-only).";
+    if (els.panelHint) els.panelHint.textContent = "Queued envelopes (local-only).";
     renderList(state.vault.outbox);
     return;
   }
   if (tab==="vault"){
-    els.panelHint.textContent = "Pinned items (append-only log).";
+    if (els.panelHint) els.panelHint.textContent = "Pinned items (append-only log).";
     renderList(state.vault.log);
     return;
   }
   if (tab==="threads"){
-    els.panelHint.textContent = "Grouped by thread.root (causal chains).";
+    if (els.panelHint) els.panelHint.textContent = "Grouped by thread.root (causal chains).";
     renderThreads();
     return;
   }
   if (tab==="map"){
-    els.panelHint.textContent = "Signal density map (agents/topics).";
+    if (els.panelHint) els.panelHint.textContent = "Signal density map (agents/topics).";
     renderMapPanel();
     return;
   }
   if (tab==="quorum"){
-    els.panelHint.textContent = "Quorum rooms inferred from topic:quorum/* messages.";
+    if (els.panelHint) els.panelHint.textContent = "Quorum rooms inferred from topic:quorum/* messages.";
     renderQuorum();
     return;
   }
   if (tab==="policy"){
-    els.panelHint.textContent = "Policy lens (score/tags/reasons) across vault.";
+    if (els.panelHint) els.panelHint.textContent = "Policy lens (score/tags/reasons) across vault.";
     renderPolicy();
+    return;
+  }
+  if (tab==="gateway"){
+    if (els.panelHint) els.panelHint.textContent = "Gateway panel (spec + online submit).";
+    if (els.list) els.list.innerHTML = `<div class="small muted">Open the Gateway panel below.</div>`;
     return;
   }
 }
 
+/* ============================
+   Threads / Map / Quorum / Policy
+============================ */
 function renderThreads(){
   const all = [...state.vault.inbox, ...state.vault.outbox, ...state.vault.log].map(normalizeEnv).filter(Boolean);
   const byRoot = new Map();
@@ -261,8 +457,9 @@ function renderThreads(){
     byRoot.get(root).push(e);
   }
   const roots = [...byRoot.keys()].sort((a,b)=>String(a).localeCompare(String(b)));
-  if (!roots.length){ els.list.innerHTML = `<div class="small muted">No threads.</div>`; return; }
+  if (!roots.length){ if (els.list) els.list.innerHTML = `<div class="small muted">No threads.</div>`; return; }
 
+  if (!els.list) return;
   els.list.innerHTML = roots.map(root=>{
     const items = byRoot.get(root).slice().sort(sortDet);
     const head = items[0];
@@ -289,6 +486,7 @@ function renderThreads(){
 }
 
 function renderMapPanel(){
+  if (!els.list) return;
   els.list.innerHTML = `
     <div class="small muted">See the Orchestra Map on the right. It updates from vault contents.</div>
     <div class="amsItem" style="margin-top:.5rem;">
@@ -305,8 +503,8 @@ function renderMapPanel(){
 function renderQuorum(){
   const all = [...state.vault.inbox, ...state.vault.outbox, ...state.vault.log].map(normalizeEnv).filter(Boolean);
   const q = all.filter(e => (e.to||[]).some(x=>String(x).startsWith("topic:quorum/")) || (e.kind==="quorum"));
-  if (!q.length){ els.list.innerHTML = `<div class="small muted">No quorum messages found.</div>`; return; }
-  // group by quorum topic
+  if (!q.length){ if (els.list) els.list.innerHTML = `<div class="small muted">No quorum messages found.</div>`; return; }
+
   const byTopic = new Map();
   for (const e of q){
     const t = (e.to||[]).find(x=>String(x).startsWith("topic:quorum/")) || "topic:quorum/—";
@@ -314,9 +512,11 @@ function renderQuorum(){
     byTopic.get(t).push(e);
   }
   const topics = [...byTopic.keys()].sort((a,b)=>String(a).localeCompare(String(b)));
+
+  if (!els.list) return;
   els.list.innerHTML = topics.map(t=>{
     const items = byTopic.get(t).slice().sort(sortDet);
-    const votes = items.filter(x=>x.payload?.title?.toLowerCase().includes("vote")).length;
+    const votes = items.filter(x=>String(x.payload?.title||"").toLowerCase().includes("vote")).length;
     return `
       <div class="amsItem">
         <div class="top">
@@ -333,6 +533,7 @@ function renderQuorum(){
       </div>
     `;
   }).join("");
+
   els.list.querySelectorAll("button[data-open]").forEach(btn=>{
     btn.addEventListener("click", ()=> openById(btn.getAttribute("data-open")));
   });
@@ -340,8 +541,8 @@ function renderQuorum(){
 
 function renderPolicy(){
   const all = [...state.vault.inbox, ...state.vault.outbox, ...state.vault.log].map(normalizeEnv).filter(Boolean);
-  if (!all.length){ els.list.innerHTML = `<div class="small muted">No policy data.</div>`; return; }
-  // aggregate tags
+  if (!all.length){ if (els.list) els.list.innerHTML = `<div class="small muted">No policy data.</div>`; return; }
+
   const tagCount = new Map();
   for (const e of all){
     for (const t of (e.policy?.tags||[])){
@@ -350,6 +551,7 @@ function renderPolicy(){
   }
   const tags = [...tagCount.entries()].sort((a,b)=>b[1]-a[1]).slice(0,40);
 
+  if (!els.list) return;
   els.list.innerHTML = `
     <div class="amsItem">
       <div class="k">Top policy tags</div>
@@ -363,6 +565,9 @@ function renderPolicy(){
   `;
 }
 
+/* ============================
+   Envelope compose + hashing
+============================ */
 async function sha256Hex(str){
   const data = new TextEncoder().encode(str);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -370,12 +575,12 @@ async function sha256Hex(str){
 }
 
 async function makeEnvelope(){
-  const from = (els.cFrom.value||"agent:you").trim() || "agent:you";
-  const to = (els.cTo.value||"topic:ams").split(",").map(x=>x.trim()).filter(Boolean);
-  const kind = (els.cKind.value||"note").trim();
-  const priority = Math.max(0, Math.min(999, parseInt(els.cPri.value||"50",10)));
-  const title = (els.cTitle.value||"").trim() || "(untitled)";
-  const body = (els.cBody.value||"").toString();
+  const from = (els.cFrom?.value||"agent:you").trim() || "agent:you";
+  const to = (els.cTo?.value||"topic:ams").split(",").map(x=>x.trim()).filter(Boolean);
+  const kind = (els.cKind?.value||"note").trim();
+  const priority = Math.max(0, Math.min(999, parseInt(els.cPri?.value||"50",10)));
+  const title = (els.cTitle?.value||"").trim() || "(untitled)";
+  const body = (els.cBody?.value||"").toString();
 
   const base = {
     v:"ams-envelope-0.2",
@@ -394,35 +599,39 @@ function copyToClipboard(txt){
   return navigator.clipboard.writeText(txt);
 }
 
+/* ============================
+   Wiring: compose / inspector / vault
+============================ */
 function wireCompose(){
   els.btnQueueOutbox?.addEventListener("click", async ()=>{
-    const env = await makeEnvelope();
-    state.vault.outbox.unshift(env);
+    const env0 = await makeEnvelope();
+    state.vault.outbox.unshift(env0);
     saveVault();
-    els.composeMeta.textContent = "queued: " + env.id;
-    openById(env.id);
+    if (els.composeMeta) els.composeMeta.textContent = "queued: " + env0.id;
+    openById(env0.id);
     setTab("outbox");
   });
 
   els.btnCopyRaw?.addEventListener("click", async ()=>{
-    const env = await makeEnvelope();
-    const raw = JSON.stringify(env, null, 2);
+    const env0 = await makeEnvelope();
+    const raw = JSON.stringify(env0, null, 2);
     await copyToClipboard(raw);
-    els.composeMeta.textContent = "copied";
-    els.raw.value = raw;
-    els.inspector.innerHTML = safeInspector(env);
+    if (els.composeMeta) els.composeMeta.textContent = "copied";
+    if (els.raw) els.raw.value = raw;
+    if (els.inspector) els.inspector.innerHTML = safeInspector(env0);
   });
 }
 
 function wireInspector(){
   els.btnDownloadRaw?.addEventListener("click", ()=>{
-    const txt = els.raw.value || "";
+    const txt = els.raw?.value || "";
     const obj = safeJson(txt, null);
     const name = (obj && obj.id) ? (`ams_${obj.id}.json`) : "ams_envelope.json";
     downloadText(name, txt);
   });
+
   els.btnPin?.addEventListener("click", ()=>{
-    const obj = safeJson(els.raw.value, null);
+    const obj = safeJson(els.raw?.value || "", null);
     const e = normalizeEnv(obj);
     if (!e || !e.id) return alert("Invalid envelope JSON");
     upsertFront(state.vault.log, e);
@@ -432,19 +641,13 @@ function wireInspector(){
   });
 }
 
-function wireTabs(){
-  document.querySelectorAll(".amsTabs .btn").forEach(b=>{
-    b.addEventListener("click", ()=> setTab(b.getAttribute("data-tab")));
-  });
-}
-
 async function exportVault(){
   downloadText("onetoo_ams_vault.json", JSON.stringify(state.vault, null, 2));
 }
 
 async function importFile(f){
   const text = await f.text();
-  // if jsonl -> lines
+
   if (f.name.toLowerCase().endsWith(".jsonl")){
     const lines = text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
     const events = [];
@@ -459,9 +662,10 @@ async function importFile(f){
     drawMap();
     return;
   }
+
   const obj = safeJson(text, null);
   if (!obj) return alert("Invalid JSON");
-  // vault json
+
   if (obj.inbox && obj.outbox && obj.log){
     state.vault = obj;
     saveVault();
@@ -469,7 +673,7 @@ async function importFile(f){
     drawMap();
     return;
   }
-  // single envelope json
+
   const e = normalizeEnv(obj);
   if (e && e.id){
     upsertFront(state.vault.log, e);
@@ -478,6 +682,7 @@ async function importFile(f){
     drawMap();
     return;
   }
+
   alert("Unsupported import format");
 }
 
@@ -490,9 +695,10 @@ function wireVaultControls(){
     saveVault();
     renderCurrent();
     drawMap();
-    els.raw.value = "";
-    els.inspector.innerHTML = "";
+    if (els.raw) els.raw.value = "";
+    if (els.inspector) els.inspector.innerHTML = "";
   });
+
   els.inImport?.addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if (!f) return;
@@ -502,9 +708,31 @@ function wireVaultControls(){
   });
 }
 
+async function loadDemo(){
+  const url = "/.well-known/ams-demo-log.jsonl?cb=" + Date.now();
+  const r = await fetch(url, { cache:"no-store" });
+  const t = await r.text();
+  const lines = t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const events = [];
+  for (const ln of lines){
+    const obj = safeJson(ln, null);
+    const e = normalizeEnv(obj);
+    if (e && e.id) events.push(e);
+  }
+  state.vault.inbox = events.filter(e=>["receipt","alert"].includes(e.kind));
+  state.vault.log = events.filter(e=>!["receipt","alert"].includes(e.kind));
+  saveVault();
+  renderCurrent();
+  drawMap();
+}
+
+/* ============================
+   Orchestra map
+============================ */
 function drawMap(){
   const c = els.map;
   if (!c) return;
+
   const ctx = c.getContext("2d");
   const w = c.width = c.clientWidth * devicePixelRatio;
   const h = c.height = c.clientHeight * devicePixelRatio;
@@ -512,7 +740,6 @@ function drawMap(){
 
   const all = [...state.vault.inbox, ...state.vault.outbox, ...state.vault.log].map(normalizeEnv).filter(Boolean);
 
-  // build node counts: agents + topics
   const nodes = new Map();
   function bump(k){
     k = String(k||"");
@@ -523,16 +750,16 @@ function drawMap(){
     bump(e.from);
     for (const t of (e.to||[])) bump(t);
   }
+
   const keys = [...nodes.keys()].sort((a,b)=>nodes.get(b)-nodes.get(a)).slice(0,16);
   if (!keys.length){
-    els.mapMeta.textContent = "—";
+    if (els.mapMeta) els.mapMeta.textContent = "—";
     ctx.font = `${14*devicePixelRatio}px sans-serif`;
     ctx.fillStyle = "rgba(255,255,255,.65)";
     ctx.fillText("No signals yet.", 16*devicePixelRatio, 28*devicePixelRatio);
     return;
   }
 
-  // place nodes on circle
   const cx = w/2, cy = h/2, R = Math.min(w,h)*0.34;
   const pos = new Map();
   keys.forEach((k,i)=>{
@@ -540,7 +767,6 @@ function drawMap(){
     pos.set(k, { x: cx + R*Math.cos(a), y: cy + R*Math.sin(a) });
   });
 
-  // edges from->to
   ctx.lineWidth = 1.2*devicePixelRatio;
   for (const e of all){
     if (!pos.has(e.from)) continue;
@@ -556,11 +782,11 @@ function drawMap(){
     }
   }
 
-  // draw nodes
   for (const k of keys){
     const p = pos.get(k);
     const n = nodes.get(k)||1;
     const r = (6 + Math.min(18, n)) * devicePixelRatio;
+
     ctx.fillStyle = "rgba(255,255,255,.14)";
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,.22)";
@@ -572,41 +798,54 @@ function drawMap(){
     ctx.fillText(label, p.x + (r+6), p.y + 4*devicePixelRatio);
   }
 
-  // meta
   const total = all.length;
   const kinds = new Map();
   for (const e of all) kinds.set(e.kind, (kinds.get(e.kind)||0)+1);
   const topKinds = [...kinds.entries()].sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,n])=>`${k}:${n}`).join(" ");
-  els.mapMeta.textContent = `signals: ${total} • nodes: ${keys.length} • ${topKinds || "—"}`;
+  if (els.mapMeta) els.mapMeta.textContent = `signals: ${total} • nodes: ${keys.length} • ${topKinds || "—"}`;
 }
 
-function init(){
-  loadVault();
-  wireTabs();
-  wireCompose();
-  wireInspector();
-  wireVaultControls();
-  setTab("inbox");
-  drawMap();
+/* ============================
+   Gateway + Quorum (mock)
+============================ */
+function toggleMockGateway(){
+  const cur = isMockGatewayEnabled();
+  const next = !cur;
+  try{ localStorage.setItem(GW_MOCK_KEY, next ? "1" : "0"); }catch{}
+  setGwState(next ? "mock enabled" : (gwSpecCache ? "spec loaded" : "disabled"));
+  alert(next ? "Mock Gateway enabled (no network writes)." : "Mock Gateway disabled.");
 }
 
-init();
-
-
-
-
-/* --- Gateway + Quorum (mock) --- */
+function quorumKey(room){ return "onetoo_ams_quorum:" + room; }
 function lsGet(key, fallback=null){ try{ return JSON.parse(localStorage.getItem(key)||""); }catch{ return fallback; } }
-function lsSet(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+function lsSet(key, obj){ try{ localStorage.setItem(key, JSON.stringify(obj)); }catch{} }
 
-function nowIso(){ return new Date().toISOString(); }
+function quorumLoad(room){
+  return lsGet(quorumKey(room), { room, threshold:"2-of-3", proposal:null, votes:[], decided:false, decision:null });
+}
+function quorumSave(room, st){ lsSet(quorumKey(room), st); }
+
+function quorumRender(st){
+  if (els.qOut) els.qOut.textContent = JSON.stringify(st, null, 2);
+  if (els.qState) els.qState.textContent = st.decided ? "decided" : st.proposal ? "active" : "idle";
+}
+
+function quorumComputeDecision(st){
+  // ✅ critical: votes store choice inside payload.choice
+  const yes = st.votes.filter(v=>v?.payload?.choice==="yes").length;
+  const no  = st.votes.filter(v=>v?.payload?.choice==="no").length;
+  const need = parseInt(String(st.threshold).split("-of-")[0], 10) || 2;
+  const result = yes >= need ? "accepted" : (no >= need ? "rejected" : "undecided");
+  return { yes, no, need, result };
+}
 
 function env(kind, from, toArr, payload, extra={}){
   return {
     v: "ams-envelope-0.2",
     id: "mock-" + kind + "-" + Math.random().toString(16).slice(2),
-    ts: nowIso(),
-    from, to: toArr,
+    ts: new Date().toISOString(),
+    from,
+    to: toArr,
     kind,
     priority: extra.priority ?? 10,
     thread: extra.thread ?? { root: extra.root ?? null, prev: extra.prev ?? null },
@@ -616,167 +855,202 @@ function env(kind, from, toArr, payload, extra={}){
   };
 }
 
-async function loadGatewaySpec(){
-  const out = document.getElementById("gwOut");
-  const badge = document.getElementById("gwState");
-  out.textContent = "Loading spec…";
-  try{
-    const r = await fetch("/.well-known/ams-gateway-spec.json", { cache:"no-store" });
-    const t = await r.text();
-    out.textContent = t;
-    badge.textContent = "disabled (spec loaded)";
-  }catch(e){
-    out.textContent = String(e?.message||e);
-    badge.textContent = "error";
+async function sendOnline(){
+  // Ensure spec is loaded (best effort). If it fails, still try default path.
+  if (!gwSpecCache){
+    try{ await loadGatewaySpec(); }catch{ /* ignore */ }
   }
-}
 
-function toggleMockGateway(){
-  const key = "onetoo_ams_gateway_mock";
-  const cur = localStorage.getItem(key) === "1";
-  const next = !cur;
-  localStorage.setItem(key, next ? "1" : "0");
-  const badge = document.getElementById("gwState");
-  badge.textContent = next ? "mock enabled" : "disabled";
-}
+  const e = await makeEnvelope();
 
-function quorumKey(room){ return "onetoo_ams_quorum:" + room; }
-function quorumLoad(room){
-  return lsGet(quorumKey(room), { room, threshold:"2-of-3", proposal:null, votes:[], decided:false, decision:null });
-}
-function quorumSave(room, st){ lsSet(quorumKey(room), st); }
+  // MOCK mode: no network writes, but you can test the full UX flow
+  if (isMockGatewayEnabled()){
+    const receipt = { ok:true, mock:true, received_at: new Date().toISOString(), echo: normalizeEnvelopeForApi(e) };
+    const receiptEnv = normalizeEnv({
+      v: "ams-envelope-0.2",
+      id: "receipt-mock-" + Date.now(),
+      ts: new Date().toISOString(),
+      from: "gateway:mock",
+      to: ["agent:you"],
+      kind: "receipt",
+      priority: 20,
+      thread: { root: e.id || null, prev: null },
+      payload: { title: "Mock gateway receipt", body: JSON.stringify(receipt, null, 2) },
+      policy: { score: 90, tags: ["mock","receipt"], reasons: ["mock gateway enabled"] },
+      proofs: [{ type:"mock", note:"no network write" }]
+    });
+    upsertFront(state.vault.log, receiptEnv);
+    saveVault();
+    renderCurrent();
+    drawMap();
+    alert("Mock send ✅ (no network)\n" + JSON.stringify(receipt, null, 2).slice(0, 900));
+    return;
+  }
 
-function quorumRender(st){
-  const out = document.getElementById("qOut");
-  out.textContent = JSON.stringify(st, null, 2);
-  document.getElementById("qState").textContent = st.decided ? "decided" : st.proposal ? "active" : "idle";
-}
+  // REAL network submit
+  const res = await postEnvelopeToGateway(e);
+  const receipt = (res && typeof res === "object") ? res : { ok:true, raw:String(res) };
 
-function quorumComputeDecision(st){
-  const yes = st.votes.filter(v=>v.choice==="yes").length;
-  const no = st.votes.filter(v=>v.choice==="no").length;
-  // parse "2-of-3" → 2
-  const need = parseInt(String(st.threshold).split("-of-")[0], 10) || 2;
-  const result = yes >= need ? "accepted" : (no >= need ? "rejected" : "undecided");
-  return { yes, no, need, result };
+  const receiptEnv = normalizeEnv({
+    v: "ams-envelope-0.2",
+    id: receipt.id || ("receipt-" + Date.now()),
+    ts: new Date().toISOString(),
+    from: "gateway:ams",
+    to: ["agent:you"],
+    kind: "receipt",
+    priority: 20,
+    thread: { root: e.id || null, prev: null },
+    payload: { title: "Gateway receipt", body: JSON.stringify(receipt, null, 2) },
+    policy: { score: 90, tags: ["online-submit","receipt"], reasons: ["gateway response"] },
+    proofs: Array.isArray(receipt.proofs) ? receipt.proofs : [{ type:"gateway", note:"response" }]
+  });
+
+  upsertFront(state.vault.log, receiptEnv);
+  saveVault();
+  renderCurrent();
+  drawMap();
+
+  alert("Sent online ✅\n" + JSON.stringify(receipt, null, 2).slice(0, 900));
 }
 
 function wireGatewayAndQuorum(){
-  const gwLoad = document.getElementById("gwLoadSpec");
-  const gwMock = document.getElementById("gwMockToggle");
-  gwLoad && (gwLoad.onclick = loadGatewaySpec);
-  gwMock && (gwMock.onclick = toggleMockGateway);
+  // gateway
+  els.gwLoadSpec && (els.gwLoadSpec.onclick = ()=> loadGatewaySpec().catch(()=>{}));
+  els.gwMockToggle && (els.gwMockToggle.onclick = toggleMockGateway);
 
-  const qRoom = document.getElementById("qRoom");
-  const qThresh = document.getElementById("qThresh");
-  const btnP = document.getElementById("qNewProposal");
-  const btnY = document.getElementById("qVoteYes");
-  const btnN = document.getElementById("qVoteNo");
-  const btnD = document.getElementById("qDecide");
+  // token box
+  loadWriteToken();
+  els.gwToken?.addEventListener("input", ()=> setAuthState());
+  els.gwTokenSave && (els.gwTokenSave.onclick = ()=>{
+    persistWriteToken(getWriteToken());
+    alert("Token saved (localStorage).");
+  });
+  els.gwTokenClear && (els.gwTokenClear.onclick = ()=>{
+    if (els.gwToken) els.gwToken.value = "";
+    persistWriteToken("");
+    alert("Token cleared.");
+  });
 
-  function getRoom(){ return (qRoom?.value||"room:core").trim(); }
+  // always enabled in UI; server decides auth (401 if protected)
+  if (els.gwSubmitOnline){
+    els.gwSubmitOnline.disabled = false;
+    els.gwSubmitOnline.title = "Send composed envelope online (or mock if enabled)";
+    els.gwSubmitOnline.onclick = async ()=>{
+      try{
+        await sendOnline();
+      }catch(err){
+        alert("Send failed: " + String(err?.message || err));
+      }
+    };
+  }
 
-  function load(){
+  // quorum
+  function getRoom(){ return (els.qRoom?.value||"room:core").trim(); }
+  function loadQ(){
     const room = getRoom();
     const st = quorumLoad(room);
-    st.threshold = (qThresh?.value||st.threshold);
+    st.threshold = (els.qThresh?.value||st.threshold);
     quorumRender(st);
     return st;
   }
-  function save(st){
+  function saveQ(st){
     const room = getRoom();
-    st.threshold = (qThresh?.value||st.threshold);
+    st.threshold = (els.qThresh?.value||st.threshold);
     quorumSave(room, st);
     quorumRender(st);
   }
 
-  btnP && (btnP.onclick = ()=>{
-    const st = load();
+  els.qNewProposal && (els.qNewProposal.onclick = ()=>{
+    const st = loadQ();
     const root = "q-" + Math.random().toString(16).slice(2);
-    st.proposal = env("proposal","agent:composer",[getRoom()],{ title:"Proposal", body:"Describe desired action / change." }, { root, thread:{root,prev:null}, policy:{score:80,tags:["proposal","quorum"],reasons:["mock proposal"]} });
+    st.proposal = env(
+      "proposal",
+      "agent:composer",
+      [getRoom()],
+      { title:"Proposal", body:"Describe desired action / change." },
+      { root, thread:{root,prev:null}, policy:{score:80,tags:["proposal","quorum"],reasons:["mock proposal"]} }
+    );
     st.votes = [];
     st.decided = false;
     st.decision = null;
-    save(st);
+    saveQ(st);
   });
 
-  btnY && (btnY.onclick = ()=>{
-    const st = load();
+  els.qVoteYes && (els.qVoteYes.onclick = ()=>{
+    const st = loadQ();
     if (!st.proposal) return alert("Create proposal first");
-    st.votes.push(env("vote","agent:reviewer",[getRoom()],{ choice:"yes" }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }));
-    save(st);
+    st.votes.push(env(
+      "vote",
+      "agent:reviewer",
+      [getRoom()],
+      { choice:"yes" },
+      { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }
+    ));
+    saveQ(st);
   });
 
-  btnN && (btnN.onclick = ()=>{
-    const st = load();
+  els.qVoteNo && (els.qVoteNo.onclick = ()=>{
+    const st = loadQ();
     if (!st.proposal) return alert("Create proposal first");
-    st.votes.push(env("vote","agent:reviewer",[getRoom()],{ choice:"no" }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }));
-    save(st);
+    st.votes.push(env(
+      "vote",
+      "agent:reviewer",
+      [getRoom()],
+      { choice:"no" },
+      { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id }
+    ));
+    saveQ(st);
   });
 
-  btnD && (btnD.onclick = ()=>{
-    const st = load();
+  els.qDecide && (els.qDecide.onclick = ()=>{
+    const st = loadQ();
     if (!st.proposal) return alert("Create proposal first");
     const d = quorumComputeDecision(st);
-    st.decision = env("decision","agent:conductor",[getRoom()],{
-      threshold: st.threshold,
-      tally: d,
-      result: d.result,
-      proposal_id: st.proposal.id,
-      votes: st.votes.map(v=>({id:v.id, choice:v.payload?.choice}))
-    }, { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id, policy:{score:90,tags:["decision","quorum"],reasons:["mock deterministic decision"]} });
+    st.decision = env(
+      "decision",
+      "agent:conductor",
+      [getRoom()],
+      {
+        threshold: st.threshold,
+        tally: d,
+        result: d.result,
+        proposal_id: st.proposal.id,
+        votes: st.votes.map(v=>({id:v.id, choice:v.payload?.choice}))
+      },
+      { root: st.proposal.thread.root, prev: st.votes.at(-1)?.id || st.proposal.id, policy:{score:90,tags:["decision","quorum"],reasons:["mock deterministic decision"]} }
+    );
     st.decided = (d.result !== "undecided");
-    save(st);
+    saveQ(st);
   });
 
   // initial render
-  load();
+  loadQ();
+
+  // initial state badge
+  if (isMockGatewayEnabled()) setGwState("mock enabled");
+  else if (gwSpecCache) setGwState("spec loaded");
+  else setGwState("disabled");
 }
-
-document.addEventListener("DOMContentLoaded", wireGatewayAndQuorum);
-
-
-
-
 
 /* ============================
-   AMS_PANEL_ROUTER_V1
-   Shows special panels: gateway/quorum
-   without touching existing list renderer.
+   Init
 ============================ */
-function __amsRoutePanels(tab){
-  const panels = Array.from(document.querySelectorAll("section.panel[data-panel]"));
-  for (const p of panels){
-    p.style.display = (p.dataset.panel === tab) ? "block" : "none";
-  }
-
-  // Hide main AMS grid when opening special panels
-  const grid = document.querySelector(".amsGrid");
-  if (grid){
-    grid.style.display = (tab === "gateway" || tab === "quorum") ? "none" : "";
-  }
-
-  // Smooth scroll to panel if opened
-  if (tab === "gateway"){
-    const el = document.getElementById("panelGateway");
-    el && el.scrollIntoView({ behavior:"smooth", block:"start" });
-  }
-  if (tab === "quorum"){
-    const el = document.getElementById("panelQuorum");
-    el && el.scrollIntoView({ behavior:"smooth", block:"start" });
-  }
+function wireTabs(){
+  document.querySelectorAll(".amsTabs .btn").forEach(b=>{
+    b.addEventListener("click", ()=> setTab(b.getAttribute("data-tab")));
+  });
 }
 
-// Lightweight hook: runs alongside existing tab logic
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest(".amsTabs [data-tab]");
-  if (!btn) return;
-  __amsRoutePanels(btn.dataset.tab);
-});
+function init(){
+  loadVault();
+  wireTabs();
+  wireCompose();
+  wireInspector();
+  wireVaultControls();
+  wireGatewayAndQuorum();
 
-// On load: ensure special panels are hidden
-document.addEventListener("DOMContentLoaded", () => {
-  const active = document.querySelector(".amsTabs .active")?.dataset?.tab || "inbox";
-  __amsRoutePanels(active);
-});
+  setTab("inbox");
+  drawMap();
+}
 
+init();

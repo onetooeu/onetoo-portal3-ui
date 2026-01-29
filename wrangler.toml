@@ -1,15 +1,8 @@
 name = "onetoo-portal3-ui"
-compatibility_date = "2026-01-25"
+compatibility_date = "2026-01-20"
 
-# Seal: no workers.dev + no preview URLs
-workers_dev = false
-preview_urls = false
+# Pages dev needs this:
+pages_build_output_dir = "."
 
-# Static UI assets
-[assets]
-directory = "."
-
-# Custom domain
-[[routes]]
-pattern = "portal.onetoo.eu"
-custom_domain = true
+[dev]
+port = 8788

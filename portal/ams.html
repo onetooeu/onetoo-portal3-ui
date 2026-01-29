@@ -11,6 +11,7 @@
   <div id="header"></div>
 
   <div class="container">
+    <!-- Main AMS card -->
     <div class="card">
       <div class="amsPanelTitle">
         <div>
@@ -51,6 +52,7 @@
 
           <div class="card" style="margin-top:1rem;">
             <h2 style="margin-top:0;">Compose (local-only)</h2>
+
             <div class="amsSplit">
               <div class="field">
                 <label>From</label>
@@ -61,6 +63,7 @@
                 <input id="cTo" value="topic:ams" />
               </div>
             </div>
+
             <div class="amsSplit">
               <div class="field">
                 <label>Kind</label>
@@ -82,14 +85,17 @@
                 <input id="cPri" type="number" value="50" min="0" max="999"/>
               </div>
             </div>
+
             <div class="field">
               <label>Title</label>
               <input id="cTitle" placeholder="Short title" />
             </div>
+
             <div class="field">
               <label>Body</label>
               <textarea id="cBody" class="amsMono" rows="5" spellcheck="false" placeholder="Plain text. Safe render. No auto-exec."></textarea>
             </div>
+
             <div class="row">
               <button class="btn ok" id="btnQueueOutbox">Queue → Outbox</button>
               <button class="btn" id="btnCopyRaw">Copy raw envelope</button>
@@ -104,10 +110,13 @@
               <h2 style="margin:0;">Inspector</h2>
               <div class="small muted">Prompt Firewall: safe/plain render.</div>
             </div>
+
             <div id="inspector" class="amsSmall" style="margin-top:.6rem;"></div>
+
             <div style="margin-top:.6rem;">
               <textarea id="raw" class="amsMono" rows="14" spellcheck="false" style="width:100%;"></textarea>
             </div>
+
             <div class="row" style="margin-top:.6rem;">
               <button class="btn" id="btnDownloadRaw">Download JSON</button>
               <button class="btn" id="btnPin">Pin to Vault</button>
@@ -126,6 +135,7 @@
       </div>
     </div>
 
+    <!-- Notes -->
     <div class="card">
       <h2 style="margin-top:0;">Notes</h2>
       <p class="small muted">
@@ -139,64 +149,141 @@
         <a class="btn" href="./federation.html">Federation</a>
       </div>
     </div>
+
+    <!-- Gateway panel (hidden unless tab selected) -->
+    <section class="panel" data-panel="gateway" id="panelGateway" style="display:none">
+      <div class="card">
+        <div class="row between">
+          <h2 style="margin:0">Gateway</h2>
+          <span class="badge subtle">offline-first • online write requires token</span>
+        </div>
+
+        <p class="small">
+          Online submit sends <code>POST /ams/v1/envelopes</code>.
+          If write is protected, paste your write token below (sent as <code>Authorization: Bearer …</code>).
+        </p>
+
+        <!-- NEW: token box -->
+        <div class="grid two" style="margin-top:.5rem;">
+          <div class="field">
+            <label>Write token (Bearer)</label>
+            <input
+              id="gwToken"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="paste token here (no 'Bearer ' prefix needed)"
+            />
+          </div>
+
+          <div class="field">
+            <label>Token tools</label>
+            <div class="row" style="gap:.5rem; flex-wrap:wrap;">
+              <button class="btn" id="gwTokenSave" type="button">Save token</button>
+              <button class="btn" id="gwTokenClear" type="button">Clear token</button>
+              <span class="badge subtle" id="gwAuthState">auth: —</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="gap:.5rem; flex-wrap:wrap; margin-top:.5rem;">
+          <button class="btn" id="gwLoadSpec">Load spec</button>
+          <button class="btn" id="gwMockToggle">Enable Mock Gateway (local)</button>
+
+          <button class="btn ok" id="gwSubmitOnline" title="Submit the currently composed envelope online to gateway">
+            Send online
+          </button>
+
+          <span class="badge" id="gwState">disabled</span>
+        </div>
+
+        <div class="small muted" style="margin-top:.35rem;">
+          Tip: If you get <code>401 Unauthorized</code>, your token is missing/wrong or the server expects a different secret.
+          Check DevTools → Network → request headers (must include <code>authorization: Bearer …</code>).
+        </div>
+
+        <pre class="mono small" id="gwOut" style="margin-top:.7rem;"></pre>
+
+        <p class="small muted">
+          Contract draft lives at <code>/.well-known/ams-gateway-spec.json</code>.
+          Mock mode stores a local "gateway" flag and generates receipts locally.
+        </p>
+      </div>
+    </section>
+
+    <!-- Quorum panel (hidden unless tab selected) -->
+    <section class="panel" data-panel="quorum" id="panelQuorum" style="display:none">
+      <div class="card">
+        <div class="row between">
+          <h2 style="margin:0">Quorum Room (mock)</h2>
+          <span class="badge ok">decision-first</span>
+        </div>
+
+        <p class="small">Default is <b>proposal → votes → decision</b> (not chat). Deterministic replay friendly.</p>
+
+        <div class="grid two">
+          <div class="field">
+            <label>Room</label>
+            <input id="qRoom" value="room:core" />
+          </div>
+          <div class="field">
+            <label>Threshold</label>
+            <input id="qThresh" value="2-of-3" />
+          </div>
+        </div>
+
+        <div class="row" style="gap:.5rem; flex-wrap:wrap;">
+          <button class="btn ok" id="qNewProposal">New proposal</button>
+          <button class="btn" id="qVoteYes">Vote YES</button>
+          <button class="btn" id="qVoteNo">Vote NO</button>
+          <button class="btn" id="qDecide">Compute decision</button>
+          <span class="badge" id="qState">idle</span>
+        </div>
+
+        <pre class="mono small" id="qOut"></pre>
+        <p class="small muted">Mock stores room state in localStorage only (no network). Use Vault to pin resulting decision envelopes.</p>
+      </div>
+    </section>
   </div>
 
   <div id="footer"></div>
+
+  <!-- Script at the end so all DOM ids exist before module runs -->
   <script type="module" src="/assets/ams.js"></script>
-<section class="panel" data-panel="gateway" id="panelGateway" style="display:none">
-  <div class="card">
-    <div class="row between">
-      <h2 style="margin:0">Gateway (disabled)</h2>
-      <span class="badge subtle">read-only UI</span>
-    </div>
-    <p class="small">
-      AMS is not an email client. This UI is offline-first and does not send messages.
-      Gateway is intentionally <b>disabled</b> until an agent service exists.
-    </p>
-    <div class="row">
-      <button class="btn" id="gwLoadSpec">Load spec</button>
-      <button class="btn" id="gwMockToggle">Enable Mock Gateway (local)</button>
-      <span class="badge" id="gwState">disabled</span>
-    </div>
-    <pre class="mono small" id="gwOut"></pre>
-    <p class="small muted">
-      Contract draft lives at <code>/.well-known/ams-gateway-spec.json</code>. Mock mode stores a local "gateway" flag and generates receipts locally.
-    </p>
-  </div>
-</section>
 
-<section class="panel" data-panel="quorum" id="panelQuorum" style="display:none">
-  <div class="card">
-    <div class="row between">
-      <h2 style="margin:0">Quorum Room (mock)</h2>
-      <span class="badge ok">decision-first</span>
-    </div>
-    <p class="small">Default is <b>proposal → votes → decision</b> (not chat). Deterministic replay friendly.</p>
+  <!-- NEW: tiny no-break helper for token buttons (safe even if ams.js also manages persistence) -->
+  <script>
+    (function(){
+      const KEY = "onetoo_ams_gateway_write_token_v1";
+      const tok = document.getElementById("gwToken");
+      const save = document.getElementById("gwTokenSave");
+      const clear = document.getElementById("gwTokenClear");
+      const st = document.getElementById("gwAuthState");
 
-    <div class="grid two">
-      <div class="field">
-        <label>Room</label>
-        <input id="qRoom" value="room:core" />
-      </div>
-      <div class="field">
-        <label>Threshold</label>
-        <input id="qThresh" value="2-of-3" />
-      </div>
-    </div>
+      if (!tok || !save || !clear || !st) return;
 
-    <div class="row">
-      <button class="btn ok" id="qNewProposal">New proposal</button>
-      <button class="btn" id="qVoteYes">Vote YES</button>
-      <button class="btn" id="qVoteNo">Vote NO</button>
-      <button class="btn" id="qDecide">Compute decision</button>
-      <span class="badge" id="qState">idle</span>
-    </div>
+      try { tok.value = localStorage.getItem(KEY) || ""; } catch(e){}
 
-    <pre class="mono small" id="qOut"></pre>
-    <p class="small muted">Mock stores room state in localStorage only (no network). Use Vault to pin resulting decision envelopes.</p>
-  </div>
-</section>
+      function render(){
+        const v = (tok.value||"").trim();
+        st.textContent = v ? ("auth: token set (" + Math.min(8, v.length) + "+)") : "auth: empty";
+      }
+      render();
 
+      save.addEventListener("click", function(){
+        try { localStorage.setItem(KEY, (tok.value||"").trim()); } catch(e){}
+        render();
+        alert("Token saved (localStorage).");
+      });
+
+      clear.addEventListener("click", function(){
+        tok.value = "";
+        try { localStorage.removeItem(KEY); } catch(e){}
+        render();
+        alert("Token cleared.");
+      });
+
+      tok.addEventListener("input", render);
+    })();
+  </script>
 </body>
 </html>
-

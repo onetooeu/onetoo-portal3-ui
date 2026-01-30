@@ -1096,4 +1096,124 @@ function init(){
   drawMap();
 }
 
-init();
+init();/* === ONETOO: Public Audit Widget (Portal 4.0) ==========================
+   Shows public NDJSON feed: GET /audit/v1/events.ndjson?limit=N
+   No auth required when AUDIT_PUBLIC=1 (your current setup).
+======================================================================= */
+(function () {
+  if (window.__ONETOO_PUBLIC_AUDIT_WIDGET__) return;
+  window.__ONETOO_PUBLIC_AUDIT_WIDGET__ = true;
+
+  function h(tag, attrs, ...kids) {
+    const e = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (k === "style") e.setAttribute("style", v);
+      else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, String(v));
+    }
+    for (const k of kids.flat()) {
+      if (k == null) continue;
+      e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+    }
+    return e;
+  }
+
+  async function fetchAudit(limit) {
+    const url = `${location.origin}/audit/v1/events.ndjson?limit=${encodeURIComponent(limit)}&cb=${Date.now()}`;
+    const r = await fetch(url, { method: "GET" });
+    const t = await r.text();
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}: ${t.slice(0, 200)}`);
+    return t;
+  }
+
+  function mount() {
+    // Only mount on AMS page(s)
+    const isAmsPage = location.pathname.endsWith("/ams.html") || location.pathname === "/ams" || location.pathname === "/ams/";
+    if (!isAmsPage) return;
+
+    const wrap = h("details", {
+      open: "",
+      style: [
+        "position:fixed",
+        "right:12px",
+        "bottom:12px",
+        "max-width:520px",
+        "width:min(520px, calc(100vw - 24px))",
+        "background:#0b0d12",
+        "border:1px solid rgba(255,255,255,.12)",
+        "border-radius:12px",
+        "padding:10px",
+        "z-index:999999",
+        "box-shadow:0 10px 30px rgba(0,0,0,.35)"
+      ].join(";")
+    });
+
+    const summary = h("summary", {
+      style: "cursor:pointer; user-select:none; font-weight:700; color:#e8ecff; outline:none;"
+    }, "Public Audit (NDJSON)");
+
+    const row = h("div", { style: "display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;" });
+
+    const inp = h("input", {
+      id: "onetoo_audit_limit",
+      type: "number",
+      min: "1",
+      max: "2000",
+      value: "50",
+      style: "width:120px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:#0f1320; color:#e8ecff;"
+    });
+
+    const btn = h("button", {
+      type: "button",
+      style: "padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:#151b2f; color:#e8ecff; cursor:pointer;"
+    }, "Refresh");
+
+    const status = h("span", { style: "color:rgba(232,236,255,.75); font-size:12px;" }, "");
+
+    const out = h("pre", {
+      id: "onetoo_audit_out",
+      style: [
+        "margin-top:10px",
+        "max-height:45vh",
+        "overflow:auto",
+        "white-space:pre-wrap",
+        "word-break:break-word",
+        "font-size:12px",
+        "line-height:1.35",
+        "padding:10px",
+        "border-radius:10px",
+        "background:#0f1320",
+        "border:1px solid rgba(255,255,255,.10)",
+        "color:#e8ecff"
+      ].join(";")
+    }, "Click Refresh to load /audit/v1/events.ndjson …");
+
+    btn.addEventListener("click", async () => {
+      const limit = Math.max(1, Math.min(parseInt(inp.value || "50", 10) || 50, 2000));
+      status.textContent = "loading…";
+      try {
+        const txt = await fetchAudit(limit);
+        const lines = txt.trim() ? txt.trimEnd().split("\n") : [];
+        status.textContent = `ok (${lines.length} lines)`;
+        out.textContent = txt || "";
+      } catch (e) {
+        status.textContent = "error";
+        out.textContent = String(e && e.message ? e.message : e);
+      }
+    });
+
+    row.appendChild(h("span", { style: "color:rgba(232,236,255,.75); font-size:12px;" }, "limit"));
+    row.appendChild(inp);
+    row.appendChild(btn);
+    row.appendChild(status);
+
+    wrap.appendChild(summary);
+    wrap.appendChild(row);
+    wrap.appendChild(out);
+
+    document.body.appendChild(wrap);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);
+  else mount();
+})();

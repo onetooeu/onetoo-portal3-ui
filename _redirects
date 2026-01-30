@@ -26,8 +26,6 @@
 /room.html        /room              301
 /notary.html      /notary            301
 
-/status.html      /portal/status     301
-/docs.html        /portal/docs       301
 # --- Portal nav aliases (pretty URLs) ---
 /home        /           301
 /registry    /portal/entities.html   301
@@ -39,6 +37,9 @@
 /notary      /portal/notary.html     301
 /ams         /ams.html               301
 # --- HTTPS hygiene ---
+/portal             /portal/index.html 200
+/portal3  /portal3.html  200
+
 http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 
 # --- NEVER rewrite static assets/partials/well-known (must remain real files) ---
@@ -48,24 +49,9 @@ http://portal.onetoo.eu/* https://portal.onetoo.eu/:splat 308
 /.well-known/*        /.well-known/:splat        200
 
 # --- Friendly short aliases ---
-/docs    /portal/docs.html    308
-/status  /portal/status.html  308
 
 # --- Hard block: do NOT let SPA fallback swallow these prefixes ---
-/portal/assets/*      404
-/portal/_partials/*   404
+# /portal/assets/*      /404.html      404   (disabled; assets are served via explicit rewrite above)
+# /portal/_partials/*   /404.html      404   (disabled; partials are served via explicit rewrite above)
 
 # --- SPA fallback (last) ---
-/portal             /portal/index.html 200
-/portal/*           /portal/index.html 200
-
-/portal3  /portal3.html  200
-
-# --- Portal nav aliases (pretty URLs) ---
-/home        /           301
-/registry    /portal/entities.html   301
-/search      /portal/search.html     301
-/federation  /portal/federation.html 301
-/artifacts   /portal/artifacts.html  301
-/room        /portal/room.html       301
-/notary      /portal/notary.html     301

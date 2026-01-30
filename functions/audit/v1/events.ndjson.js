@@ -14,11 +14,14 @@ export async function onRequest({ request, env }) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "200", 10) || 200, 2000);
   const items = await listAudit(env, limit);
 
-  const lines = items
-    .slice()
-    .reverse()
-    .map((e) => JSON.stringify({ ...e, data: e.data }, null, 0))
-    .join("\n") + "\n";
+  // NDJSON: 1 event = 1 line. If no events, return empty body (not "\n") to avoid misleading wc -l = 1.
+  const lines = items.length
+    ? items
+        .slice()
+        .reverse()
+        .map((e) => JSON.stringify({ ...e, data: e.data }, null, 0))
+        .join("\n") + "\n"
+    : "";
 
   return text(lines, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
 }

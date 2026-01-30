@@ -37,11 +37,43 @@
     </div>
   </div>
 
-  <div id="footer"></div>
+  <div id="footer">
+    <div class="card">
+      <h2>Online artifact store (experimental)</h2>
+      <p class="muted">Uses <code>/ams/v1/artifacts</code>. Token can be left empty if server is in public-write mode.</p>
+
+      <div class="row">
+        <label class="field">
+          <span>Key</span>
+          <input id="artKey" placeholder="e.g. artifact:demo:hello" />
+        </label>
+        <label class="field">
+          <span>Token (Bearer)</span>
+          <input id="artToken" placeholder="optional" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Payload (string or JSON)</span>
+        <textarea id="artPayload" rows="6" placeholder='{"hello":"world"}'></textarea>
+      </label>
+
+      <div class="row">
+        <button class="btn" id="artListBtn">List</button>
+        <button class="btn" id="artGetBtn">Get</button>
+        <button class="btn" id="artUpsertBtn">Upsert</button>
+      </div>
+
+      <pre class="pre" id="artOut" style="max-height:420px; overflow:auto"></pre>
+    </div>
+
+  </div>
 
   <script type="module">
     import { getConfig, mountHeader, mountFooter, escapeHtml, norm } from "./assets/app.js";
+    import { initArtifactsOnline } from "./assets/artifacts-online.js";
     const cfg = getConfig(); mountHeader(cfg); mountFooter(cfg);
+    initArtifactsOnline();
 
     const u = document.getElementById("u");
     const out = document.getElementById("out");

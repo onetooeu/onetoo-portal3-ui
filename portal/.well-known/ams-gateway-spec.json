@@ -1,18 +1,124 @@
 {
-  "version": "ams-gateway-spec-0.1",
-  "name": "ONETOO AMS Gateway (disabled by default)",
-  "status": { "enabled": false, "reason": "No agent service is deployed. UI remains offline-first + read-only." },
-  "security": { "auto_execute": false, "render": "prompt-firewall" },
+  "version": "ams-gateway-spec-0.3",
+  "name": "ONETOO AMS Gateway (Portal 4.0 \u2014 Online Heaven)",
+  "status": {
+    "enabled": true,
+    "mode": "experimental-open",
+    "reason": "Online submit enabled; can run token-gated or public-write mode via env."
+  },
+  "security": {
+    "offline_first": true,
+    "write_requires_auth": true,
+    "auth": {
+      "type": "Bearer",
+      "optional_when_public_write": true,
+      "headers": [
+        "Authorization: Bearer <TOKEN>",
+        "x-ams-token: <TOKEN>"
+      ],
+      "env": [
+        "AMS_PUBLIC_WRITE=1  (open write mode, token optional)",
+        "AMS_WRITE_TOKEN=<TOKEN> (write token, if not public)",
+        "AMS_ADMIN_TOKEN=<TOKEN> (admin token, optional)"
+      ],
+      "public_token_hint": "ONETOO_PUBLIC_BETA_TOKEN"
+    }
+  },
   "endpoints": [
-    { "id":"ingest_envelope", "method":"POST", "path":"/ams/v1/envelopes", "returns":"receipt+proof-ref" },
-    { "id":"stream_topic", "method":"GET", "path":"/ams/v1/stream?topic=...&since=...&limit=...", "returns":"application/x-ndjson" },
-    { "id":"stream_room", "method":"GET", "path":"/ams/v1/stream/room?room=...&since=...&limit=...", "returns":"application/x-ndjson" },
-    { "id":"get_proof_bundle", "method":"GET", "path":"/ams/v1/proofs/{proof_id}", "returns":"application/json" },
-    { "id":"quorum_decide", "method":"POST", "path":"/ams/v1/quorum/decide", "returns":"decision-envelope" },
-    { "id":"status", "method":"GET", "path":"/ams/v1/status", "returns":"application/json" }
+    {
+      "id": "ingest_envelope",
+      "method": "POST",
+      "path": "/ams/v1/envelopes",
+      "returns": "receipt+proof-ref"
+    },
+    {
+      "id": "stream_topic",
+      "method": "GET",
+      "path": "/ams/v1/stream?topic=...&since=...&limit=...",
+      "returns": "application/x-ndjson"
+    },
+    {
+      "id": "stream_room",
+      "method": "GET",
+      "path": "/ams/v1/stream/room?room=...&since=...&limit=...",
+      "returns": "application/x-ndjson"
+    },
+    {
+      "id": "get_proof_bundle",
+      "method": "GET",
+      "path": "/ams/v1/proofs/{proof_id}",
+      "returns": "application/json"
+    },
+    {
+      "id": "quorum_decide",
+      "method": "POST",
+      "path": "/ams/v1/quorum/decide",
+      "returns": "decision-envelope"
+    },
+    {
+      "id": "status",
+      "method": "GET",
+      "path": "/ams/v1/status",
+      "returns": "application/json"
+    },
+    {
+      "id": "envelopes_list",
+      "method": "GET",
+      "path": "/ams/v1/envelopes",
+      "returns": "{items[],nextCursor}"
+    },
+    {
+      "id": "envelopes_create",
+      "method": "POST",
+      "path": "/ams/v1/envelopes",
+      "returns": "{ok,envelope}"
+    },
+    {
+      "id": "room_messages_list",
+      "method": "GET",
+      "path": "/room/v1/messages?room=<ROOM>&limit=200&cursor=<ISO>",
+      "returns": "{items[],nextCursor}"
+    },
+    {
+      "id": "room_messages_create",
+      "method": "POST",
+      "path": "/room/v1/messages",
+      "returns": "{ok,message}"
+    },
+    {
+      "id": "notary_records_list",
+      "method": "GET",
+      "path": "/notary/v1/records?limit=200",
+      "returns": "{items[]}"
+    },
+    {
+      "id": "notary_records_create",
+      "method": "POST",
+      "path": "/notary/v1/records",
+      "returns": "{ok,record}"
+    },
+    {
+      "id": "artifact_list",
+      "method": "GET",
+      "path": "/ams/v1/artifacts?limit=100",
+      "returns": "{items[]}"
+    },
+    {
+      "id": "artifact_get",
+      "method": "GET",
+      "path": "/ams/v1/artifacts/<KEY>?payload=1",
+      "returns": "{ok,artifact,payload?}"
+    },
+    {
+      "id": "artifact_upsert",
+      "method": "POST",
+      "path": "/ams/v1/artifacts",
+      "returns": "{ok,artifact}"
+    }
   ],
   "notes": [
-    "Contract draft only. No live gateway implied.",
-    "Client UI may load this for transparency + local mock."
+    "This spec is intentionally permissive for early experimentation.",
+    "If AMS_PUBLIC_WRITE=1 is set on the server, writes are accepted without a token.",
+    "Otherwise, provide a Bearer token matching AMS_WRITE_TOKEN (or AMS_ADMIN_TOKEN)."
   ]
 }

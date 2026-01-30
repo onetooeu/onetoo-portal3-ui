@@ -27,6 +27,7 @@ const els = {
   inspector: document.getElementById("inspector"),
   raw: document.getElementById("raw"),
   btnLoadDemo: document.getElementById("btnLoadDemo"),
+  btnJumpCompose: document.getElementById("btnJumpCompose"),
   btnExportVault: document.getElementById("btnExportVault"),
   btnClearVault: document.getElementById("btnClearVault"),
   inImport: document.getElementById("inImport"),
@@ -687,7 +688,9 @@ async function importFile(f){
 }
 
 function wireVaultControls(){
+  if (els.btnLoadDemo){ els.btnLoadDemo.disabled = false; els.btnLoadDemo.style.pointerEvents = "auto"; }
   els.btnLoadDemo?.addEventListener("click", loadDemo);
+  els.btnJumpCompose?.addEventListener("click", (ev)=>{ ev.preventDefault(); document.getElementById("compose")?.scrollIntoView({behavior:"smooth", block:"start"}); });
   els.btnExportVault?.addEventListener("click", exportVault);
   els.btnClearVault?.addEventListener("click", ()=>{
     if (!confirm("Clear AMS vault (localStorage)?")) return;
@@ -709,22 +712,60 @@ function wireVaultControls(){
 }
 
 async function loadDemo(){
-  const url = "/.well-known/ams-demo-log.jsonl?cb=" + Date.now();
-  const r = await fetch(url, { cache:"no-store" });
-  const t = await r.text();
-  const lines = t.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const urls = [
+    "/.well-known/ams-demo-log.jsonl?cb=" + Date.now(),
+    "/.well-known/ams-demo-log.ndjson?cb=" + Date.now(),
+    "/.well-known/ams-demo-log.jsonl",
+    "/.well-known/ams-demo-log.ndjson"
+  ];
+
+  let lastErr = null;
+  let text = null;
+  let usedUrl = null;
+
+  for (const u of urls){
+    try{
+      const r = await fetch(u, { cache:"no-store" });
+      if (!r.ok){
+        lastErr = new Error(`demo fetch failed: ${r.status} ${r.statusText} (${u})`);
+        continue;
+      }
+      text = await r.text();
+      usedUrl = u;
+      break;
+    }catch(e){
+      lastErr = e;
+    }
+  }
+
+  if (text == null){
+    alert("Load demo failed: " + String(lastErr?.message || lastErr || "unknown"));
+    return;
+  }
+
+  const lines = text.split(/?
+/).map(x=>x.trim()).filter(Boolean);
   const events = [];
   for (const ln of lines){
     const obj = safeJson(ln, null);
     const e = normalizeEnv(obj);
     if (e && e.id) events.push(e);
   }
+
+  if (!events.length){
+    alert("Demo loaded but no valid events were found. (" + (usedUrl || "") + ")");
+    return;
+  }
+
   state.vault.inbox = events.filter(e=>["receipt","alert"].includes(e.kind));
   state.vault.log = events.filter(e=>!["receipt","alert"].includes(e.kind));
   saveVault();
   renderCurrent();
   drawMap();
+
+  setGwState("demo loaded");
 }
+
 
 /* ============================
    Orchestra map
@@ -1043,6 +1084,8 @@ function wireTabs(){
 
 function init(){
   loadVault();
+  // Auto-load gateway spec (best effort) so online mode is ready without extra clicks
+  loadGatewaySpec().catch(()=>{});
   wireTabs();
   wireCompose();
   wireInspector();

@@ -6,3 +6,7 @@ pages_build_output_dir = "."
 
 [dev]
 port = 8788
+[[d1_databases]]
+binding = "DB"
+database_name = "onetoo_portal4"
+database_id = "1964beeb-d2ee-4098-8b1d-59d99d9419eb"

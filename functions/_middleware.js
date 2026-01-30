@@ -70,7 +70,9 @@ function isApiV1Path(pathname) {
     pathname.startsWith("/notary/v1/") ||
     pathname.startsWith("/room/v1/") ||
     pathname.startsWith("/federation/v1/") ||
-    pathname.startsWith("/audit/v1/")
+    pathname.startsWith("/audit/v1/") ||
+    pathname.startsWith("/artifact/v1/") ||
+    pathname.startsWith("/artifacts/v1/")
   );
 }
 

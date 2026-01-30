@@ -8,3 +8,13 @@ agent.pub
 sig.bin
 canonical.txt
 body.json
+
+# local/dev secrets & probes
+.dev.vars
+__probe_root.txt
+portal/__probe_portal.txt
+portal/.well-known/_write_test.txt
+
+# local scratch
+audit/
+public/

@@ -139,8 +139,7 @@
     <div class="card">
       <h2 style="margin-top:0;">Notes</h2>
       <p class="small muted">
-        AMS runs offline-first. This UI stores data in your browser vault. Future gateway endpoints can stream JSONL logs,
-        but the portal remains read-only by design.
+        AMS runs offline-first. This UI stores data in your browser vault. The ONLINE gateway is live; this deployment is an OPEN SANDBOX (public write).
       </p>
       <div class="row">
         <a class="btn" href="./room.html">Room</a>
@@ -155,18 +154,20 @@
       <div class="card">
         <div class="row between">
           <h2 style="margin:0">Gateway</h2>
-          <span class="badge subtle">offline-first • online write requires token</span>
+          <span class="badge subtle">offline-first • open sandbox write</span>
         </div>
 
         <p class="small">
           Online submit sends <code>POST /ams/v1/envelopes</code>.
-          If write is protected, paste your write token below (sent as <code>Authorization: Bearer …</code>).
+          Write is currently OPEN (no token required). The token field stays for future hardening (sent as <code>Authorization: Bearer …</code>).
         </p>
+
+        <div class="small muted" style="margin-top:.4rem;">Discovery: <a href="/.well-known/ai-ams.json">ai-ams.json</a> · <a href="/.well-known/ams-gateway-spec.json">gateway spec</a> · <a href="/.well-known/ams-agent-guide.md">agent guide</a> · <a href="/.well-known/ams-roadmap.md">roadmap</a></div>
 
         <!-- NEW: token box -->
         <div class="grid two" style="margin-top:.5rem;">
           <div class="field">
-            <label>Write token (Bearer)</label>
+            <label>Write token (optional / future)</label>
             <input
               id="gwToken"
               spellcheck="false"

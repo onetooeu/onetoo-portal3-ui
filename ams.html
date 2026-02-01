@@ -148,8 +148,9 @@
     <h2>ONLINE MODE (Gateway)</h2>
     <p class="muted">
       This portal is <b>offline-first</b>. ONLINE MODE enables a real gateway layer (Cloudflare Pages Functions)
-      with <code>/ams/v1/*</code> endpoints. <b>Read is public</b>; <b>write requires a token</b> (Bearer).
-      You can keep the UI safe by leaving token empty.
+      with <code>/ams/v1/*</code> endpoints. <b>Read is public</b>; <b>write is currently OPEN</b> (no token required).
+      <div class="small muted" style="margin-top:6px">Discovery: <a href="/.well-known/ai-ams.json">ai-ams.json</a> · <a href="/.well-known/ams-gateway-spec.json">gateway spec</a> · <a href="/.well-known/ams-agent-guide.md">agent guide</a> · <a href="/.well-known/ams-roadmap.md">roadmap</a></div>
+      Token is optional in this sandbox (kept for future hardening).
     </p>
 
     <div class="grid2">
@@ -165,8 +166,8 @@
         <label class="small">Gateway base URL</label>
         <input id="gwUrl" class="mono" placeholder="https://portal.onetoo.eu/ams/v1" />
 
-        <label class="small">Write token (Bearer)</label>
-        <input id="gwKey" class="mono" type="password" placeholder="(optional) Bearer token for write operations" />
+        <label class="small">Write token (optional / future)</label>
+        <input id="gwKey" class="mono" type="password" placeholder="(optional) Reserved for future hardening (currently not required)" />
 
         <div class="row">
           <button id="gwListInbox">List envelopes</button>

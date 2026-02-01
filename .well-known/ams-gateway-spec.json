@@ -1,10 +1,10 @@
 {
-  "version": "ams-gateway-spec-0.2",
+  "version": "ams-gateway-spec-0.3",
   "name": "ONETOO AMS Gateway (OMEGA FULL)",
-  "status": "experimental",
+  "status": "open-sandbox",
   "security": {
     "offline_first": true,
-    "write_requires_auth": true,
+    "write_requires_auth": false,
     "auth": {
       "type": "Bearer",
       "headers": [
@@ -15,12 +15,14 @@
         "AMS_WRITE_TOKEN",
         "AMS_ADMIN_TOKEN"
       ],
-      "notes": "Set tokens in Cloudflare Pages project environment variables."
+      "notes": "Currently not enforced (open sandbox). Keep tokens ready for future hardening.",
+      "optional_now": true
     },
     "cors": {
       "env": "AMS_CORS_ORIGIN",
       "default": "*"
-    }
+    },
+    "write_requires_auth_planned": true
   },
   "endpoints": {
     "health": {
@@ -47,7 +49,8 @@
     "envelopes_create": {
       "method": "POST",
       "path": "/ams/v1/envelopes",
-      "auth": "write"
+      "auth": "public",
+      "notes": "(OPEN SANDBOX: write is public right now.)"
     },
     "envelopes_get": {
       "method": "GET",
@@ -56,8 +59,8 @@
     "envelopes_patch": {
       "method": "PATCH",
       "path": "/ams/v1/envelopes/{id}",
-      "auth": "write",
-      "notes": "Update status / append metadata."
+      "auth": "public",
+      "notes": "Update status / append metadata. (OPEN SANDBOX: write is public right now.)"
     },
     "threads_list": {
       "method": "GET",
@@ -69,8 +72,8 @@
     "sync": {
       "method": "POST",
       "path": "/ams/v1/sync",
-      "auth": "write_for_push",
-      "notes": "pull is public; push requires write token."
+      "auth": "public",
+      "notes": "pull is public; push token auth is planned (currently OPEN SANDBOX: write is public right now.)"
     },
     "artifacts_list": {
       "method": "GET",
@@ -82,7 +85,8 @@
     "artifacts_create": {
       "method": "POST",
       "path": "/ams/v1/artifacts",
-      "auth": "write"
+      "auth": "public",
+      "notes": "(OPEN SANDBOX: write is public right now.)"
     },
     "artifact_get": {
       "method": "GET",
@@ -94,33 +98,106 @@
     "artifact_put": {
       "method": "PUT",
       "path": "/ams/v1/artifacts/{key}",
-      "auth": "write",
-      "notes": "Store raw body as artifact text."
+      "auth": "public",
+      "notes": "Store raw body as artifact text. (OPEN SANDBOX: write is public right now.)"
     },
     "notary_records": {
       "method": "GET|POST",
       "path": "/notary/v1/records",
-      "auth": "write_for_post"
+      "auth": "public",
+      "notes": "(OPEN SANDBOX: write is public right now.)"
     },
     "room_messages": {
       "method": "GET|POST",
       "path": "/room/v1/messages?room={room}",
-      "auth": "write_for_post"
+      "auth": "public",
+      "notes": "(OPEN SANDBOX: write is public right now.)"
     },
     "federation_handshake": {
       "method": "GET|POST",
       "path": "/federation/v1/handshake",
-      "auth": "write"
+      "auth": "public",
+      "notes": "(OPEN SANDBOX: write is public right now.)"
     },
     "audit_ndjson": {
       "method": "GET",
       "path": "/audit/v1/events.ndjson?limit={n}",
-      "auth": "admin_unless_AUDIT_PUBLIC=1"
+      "auth": "public",
+      "notes": "Audit feed is public in this sandbox. Audit feed is public in this sandbox. Audit feed is public in this sandbox."
     }
   },
   "notes": [
+    "IMPORTANT: This deployment is an OPEN SANDBOX. Write endpoints accept public POST/PUT/PATCH without token.",
+    "Do not store sensitive personal data. Treat the system as public and potentially ephemeral.",
+    "Hardening roadmap includes: token auth, rate limits, allowlists, retention policies, and cryptographic proofs.",
     "This gateway is a demo of an online layer for the Portal UI.",
     "Use D1 binding 'DB' for persistence (recommended). Optional R2 binding 'ARTIFACTS' for large artifacts.",
     "Signature proofs are optional. If Ed25519 keys are provided, server attaches an ed25519 proof; otherwise it may attach HMAC proof."
-  ]
+  ],
+  "meta": {
+    "updated": "2026-02-01T05:58:56Z",
+    "write_mode": "open",
+    "source_of_truth": "health+audit",
+    "compat": "backward-compatible additive changes",
+    "write_requires_auth_planned": true,
+    "signature": {
+      "status": "needs-resign",
+      "reason": "Spec/manifest updated; re-sign before relying on minisign verification."
+    }
+  },
+  "discovery": {
+    "ai_manifest": "/.well-known/ai-ams.json",
+    "gateway_spec": "/.well-known/ams-gateway-spec.json",
+    "health": "/ams/v1/health",
+    "policy": "/ams/v1/policy",
+    "ui": "/ams.html",
+    "audit": "/audit/v1/events.ndjson"
+  },
+  "schemas": {
+    "envelope": {
+      "type": "object",
+      "required": [
+        "type",
+        "thread",
+        "from",
+        "to",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "thread": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "examples": {
+    "create_envelope_curl": "curl -sS -X POST \"https://portal.onetoo.eu/ams/v1/envelopes\" \\\n  -H \"content-type: application/json\" \\\n  --data '{\n    \"type\":\"note\",\n    \"thread\":\"t_example\",\n    \"from\":\"prod-open\",\n    \"to\":\"prod-open\",\n    \"payload\":{\"hello\":\"world\"}\n  }'",
+    "list_envelopes_curl": "curl -sS \"https://portal.onetoo.eu/ams/v1/envelopes?limit=20&dir=desc&thread=t_example\" ",
+    "audit_tail_curl": "curl -sS \"https://portal.onetoo.eu/audit/v1/events.ndjson\" | tail -n 20"
+  },
+  "docs": {
+    "agent_guide": "/.well-known/ams-agent-guide.md",
+    "roadmap": "/.well-known/ams-roadmap.md"
+  }
 }

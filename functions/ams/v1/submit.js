@@ -9,8 +9,8 @@ import {
   stableStringify,
   sha256Hex,
   maybeSign,
-} from "../_util.js";
-import { createEnvelope } from "../_store.js";
+} from "./_util.js";
+import { createEnvelope } from "./_store.js";
 
 // HGPEdu "chem submit" -> ALWAYS becomes an AMS envelope.
 // - Accepts text/plain (JSON string) to minimize CORS preflight.

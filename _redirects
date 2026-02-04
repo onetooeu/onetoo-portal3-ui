@@ -1,6 +1,6 @@
-/audit/v1/events /audit/v1/events 200
-/audit/v1/events_ndjson /audit/v1/events_ndjson 200
-/audit/v1/events.ndjson /audit/v1/events.ndjson 200
+/audit/v1/events /audit/v1/events.ndjson 200
+/audit/v1/events_ndjson /audit/v1/events.ndjson 200
+
 
 /status   /portal/status   301
 /docs     /portal/docs     301

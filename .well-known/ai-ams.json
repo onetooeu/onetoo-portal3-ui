@@ -35,7 +35,10 @@
       "/notary/v1/records",
       "/room/v1/messages",
       "/federation/v1/handshake",
-      "/audit/v1/events.ndjson"
+      "/audit/v1/events.ndjson",
+      "/ams/v1/submit",
+      "/audit/v1/events",
+      "/audit/v1/events_ndjson"
     ],
     "write_mode": "open",
     "write_requires_token_planned": true,
@@ -54,12 +57,22 @@
     "policy": "/.well-known/ams-policy.json",
     "agent_guide": "/.well-known/ams-agent-guide.md",
     "roadmap": "/.well-known/ams-roadmap.md",
-    "audit_ndjson": "/audit/v1/events.ndjson"
+    "audit_ndjson": "/audit/v1/events.ndjson",
+    "audit_ndjson_alternates": [
+      "/audit/v1/events",
+      "/audit/v1/events_ndjson"
+    ],
+    "submit": "/ams/v1/submit"
   },
   "discovery": {
     "health": "/ams/v1/health",
     "ui": "/ams.html",
-    "audit": "/audit/v1/events.ndjson"
+    "audit": "/audit/v1/events.ndjson",
+    "audit_alternates": [
+      "/audit/v1/events",
+      "/audit/v1/events_ndjson"
+    ],
+    "submit": "/ams/v1/submit"
   },
   "meta": {
     "signature": {

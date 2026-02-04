@@ -1,6 +1,6 @@
 {
   "version": "ams-gateway-spec-0.3",
-  "name": "ONETOO AMS Gateway (Portal 4.0 — Online Heaven)",
+  "name": "ONETOO AMS Gateway (Portal 4.0 \u2014 Online Heaven)",
   "status": "open-sandbox",
   "security": {
     "offline_first": true,
@@ -125,6 +125,26 @@
       "returns": "{ok,artifact}",
       "auth": "public",
       "notes": "(OPEN SANDBOX: write is public right now.)"
+    },
+    {
+      "id": "submit",
+      "method": "POST",
+      "path": "/ams/v1/submit",
+      "auth": "public",
+      "content_type": "text/plain (json string) OR application/json",
+      "notes": "HGPEdu direct submit bridge: always creates an AMS envelope (thread=t_contrib_submit). OPEN SANDBOX."
+    },
+    {
+      "id": "audit_alt_events",
+      "method": "GET",
+      "path": "/audit/v1/events",
+      "notes": "Alias for NDJSON audit feed (fallback)."
+    },
+    {
+      "id": "audit_alt_events_ndjson",
+      "method": "GET",
+      "path": "/audit/v1/events_ndjson",
+      "notes": "Alias for NDJSON audit feed (fallback)."
     }
   ],
   "notes": [
@@ -142,7 +162,8 @@
     "signature": {
       "status": "needs-resign",
       "reason": "Spec/manifest updated; re-sign before relying on minisign verification."
-    }
+    },
+    "signature_status": "needs-resign"
   },
   "discovery": {
     "ai_manifest": "/.well-known/ai-ams.json",
@@ -150,7 +171,12 @@
     "health": "/ams/v1/health",
     "policy": "/ams/v1/policy",
     "ui": "/ams.html",
-    "audit": "/audit/v1/events.ndjson"
+    "audit": "/audit/v1/events.ndjson",
+    "audit_alternates": [
+      "/audit/v1/events",
+      "/audit/v1/events_ndjson"
+    ],
+    "submit": "/ams/v1/submit"
   },
   "docs": {
     "agent_guide": "/.well-known/ams-agent-guide.md",

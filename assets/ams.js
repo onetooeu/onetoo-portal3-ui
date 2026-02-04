@@ -821,22 +821,33 @@ function wireGatewayAndQuorum(){
   }
 
   async function audit(){
-    try{
-      const data = await fetch(location.origin + "/audit/v1/events.ndjson?limit=200", {
-        headers: (()=>{
-          const st = stNow();
-          const h = new Headers({ "accept":"application/x-ndjson" });
-          if(st.token) h.set("authorization", "Bearer " + st.token);
-          return h;
-        })(),
-        cf:{ cacheTtl:0 }
-      });
-      const txt = await data.text();
-      logOut(txt);
-    }catch(e){
-      logOut({ ok:false, error: String(e.message||e) });
+  try{
+    const st = stNow();
+    const paths = ["/audit/v1/events.ndjson","/audit/v1/events","/audit/v1/events_ndjson"];
+    let lastErr = null;
+    for(const p of paths){
+      try{
+        const r = await fetch(location.origin + p + "?limit=200&cb=" + Date.now(), {
+          headers: (()=> {
+            const h = new Headers({ "accept":"application/x-ndjson" });
+            if(st.token) h.set("authorization", "Bearer " + st.token);
+            return h;
+          })(),
+          cf:{ cacheTtl:0 }
+        });
+        const t = await r.text();
+        if(r.ok){ logOut(t); return; }
+        lastErr = new Error(r.status + " " + r.statusText + ": " + t.slice(0,200));
+      }catch(e){
+        lastErr = e;
+      }
     }
+    throw lastErr || new Error("audit fetch failed");
+  }catch(e){
+    logOut({ ok:false, error: String(e && e.message ? e.message : e) });
   }
+}
+
 
   async function pull(){
     // Pull latest envelopes (public). For real inbox filtering, pass ?to=<entityId>.
@@ -1183,12 +1194,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function fetchAudit(limit) {
-    const url = `${location.origin}/audit/v1/events.ndjson?limit=${encodeURIComponent(limit)}&cb=${Date.now()}`;
-    const r = await fetch(url, { method: "GET" });
-    const t = await r.text();
-    if (!r.ok) throw new Error(`${r.status} ${r.statusText}: ${t.slice(0, 200)}`);
-    return t;
+  const paths = ["/audit/v1/events.ndjson","/audit/v1/events","/audit/v1/events_ndjson"];
+  let lastErr = null;
+  for (const p of paths) {
+    const url = `${location.origin}${p}?limit=${encodeURIComponent(limit)}&cb=${Date.now()}`;
+    try {
+      const r = await fetch(url, { method: "GET" });
+      const t = await r.text();
+      if (r.ok) return { text: t, used: p };
+      lastErr = new Error(`${r.status} ${r.statusText}: ${t.slice(0, 200)}`);
+    } catch (e) {
+      lastErr = e;
+    }
   }
+  throw lastErr || new Error("audit fetch failed");
+}
+
 
   function mount() {
     // Only mount on AMS page(s)
@@ -1250,7 +1271,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "border:1px solid rgba(255,255,255,.10)",
         "color:#e8ecff"
       ].join(";")
-    }, "Click Refresh to load /audit/v1/events.ndjson …");
+    }, "Click Refresh to load /audit/v1/events(.ndjson) …");
 
     btn.addEventListener("click", async () => {
       const limit = Math.max(1, Math.min(parseInt(inp.value || "50", 10) || 50, 2000));
